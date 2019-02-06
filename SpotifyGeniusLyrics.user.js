@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      1
+// @version      2
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -16,6 +16,9 @@ var requestCache = {}
 var selectionCache = {}
 var currentTitle = ''
 var currentArtists = ''
+var resizeLeftContainer
+var resizeContainer
+var currentSize = 30.0
 
 function getHostname (url) {
   const a = document.createElement('a')
@@ -23,29 +26,33 @@ function getHostname (url) {
   return a.hostname
 }
 
-function metricPrefix (bytes, precision) {
+function metricPrefix (n, decimals) {
   // http://stackoverflow.com/a/18650828
-  bytes = parseInt(bytes, 10)
-  if (bytes === 0) {
-    return '0'
+  if (n <= 0) {
+    return String(n)
   }
-  var k = 1024
-  var sizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
-  var i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toPrecision(precision)) + sizes[i]
+  let k = 1000
+  let dm = decimals <= 0 ? 0 : decimals || 2
+  let sizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+  let i = Math.floor(Math.log(n) / Math.log(k))
+  return parseFloat((n / Math.pow(k, i)).toFixed(dm)) + sizes[i]
 }
 
 async function loadCache () {
-  selectionCache = JSON.parse(await GM.getValue('selectioncache', '{}'))
+  const [cSize, selectionCacheJSON, requestCacheJSON] = await Promise.all([GM.getValue('currentsize', 30.0), GM.getValue('selectioncache', '{}'), GM.getValue('requestcache', '{}')])
 
-  requestCache = JSON.parse(await GM.getValue('requestcache', '{}'))
+  currentSize = cSize
+
+  selectionCache = JSON.parse(selectionCacheJSON)
+
+  requestCache = JSON.parse(requestCacheJSON)
   /*
   requestCache = {
      "cachekey0": "121648565.5\njsondata123",
      ...
      }
   */
-  for (var prop in requestCache) {
+  for (let prop in requestCache) {
     // Delete cached values, that are older than 2 hours
     let time = JSON.parse(requestCache[prop].split('\n')[0])
     if ((new Date()).getTime() - (new Date(time)).getTime() > 2 * 60 * 60 * 1000) {
@@ -108,14 +115,6 @@ function getLyricsSelection (title, artists) {
   }
 }
 
-function onResize (ev) {
-  let iframe = document.getElementById('lyricsiframe')
-  if (iframe) {
-    iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
-    iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
-  }
-}
-
 function geniusSearch (query, cb) {
   request({
     url: 'https://genius.com/api/search/song?page=1&q=' + encodeURIComponent(query),
@@ -139,14 +138,32 @@ function loadGeniusAssets (song, annotations, cb) {
   // Define globals
   script.push('var iv458,annotations1234;')
 
+  script.push('function decodeHTML652 (s) { return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">") }')
+
   // Hide cookies box function
-  script.push('function hideCookieBox458() {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}')
-  script.push('function decodeHTML652(s) { return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">") }')
+  script.push('function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}')
   onload.push('iv458 = window.setInterval(hideCookieBox458, 500)')
+
+  // Hide footer
+  script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){f[0].parentNode.removeChild(f[0]);f[1].parentNode.removeChild(f[1])}}')
+  script.push('function hideSecondaryFooter895 () {if(document.querySelector(".footer.footer--secondary")){document.querySelector(".footer.footer--secondary").parentNode.removeChild(document.querySelector(".footer.footer--secondary"))}}')
+
+  onload.push('hideFooter895()')
+  onload.push('hideSecondaryFooter895()')
 
   // Show annotations function
   script.push('function showAnnotation1234(id) { if(id in annotations1234) { let annotation = annotations1234[id]; let main = document.querySelector(".column_layout-column_span-initial_content"); main.querySelector(".annotation_label h3").innerHTML = decodeHTML652(annotation.created_by.name); main.querySelector(".rich_text_formatting").innerHTML = decodeHTML652(annotation.body.html); }}')
   onload.push('annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML);')
+
+  // Make song title clickable
+  script.push('function clickableTitle037() { let url = document.querySelector("meta[property=\'og:url\']").content; ')
+  script.push('  let h1 = document.querySelector(\'.header_with_cover_art-primary_info-title\'); h1.innerHTML = \'<a target="_blank" href="\' + url + \'" style="color:#ffff64">\' + h1.innerHTML + \'</a>\'')
+  script.push('  let div = document.querySelector(\'.header_with_cover_art-cover_art .cover_art\'); div.innerHTML = \'<a target="_blank" href="\' + url + \'">\' + div.innerHTML + \'</a>\'')
+  script.push('}')
+  onload.push('clickableTitle037()')
+
+  // Open real page if not in frame
+  onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
 
   request({
     url: song.result.url,
@@ -160,13 +177,19 @@ function loadGeniusAssets (song, annotations, cb) {
       const regex = /annotation-fragment="(\d+)"/g
       html = html.replace(regex, 'onclick="showAnnotation1234($1)"')
 
+      // Change design
+      html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
+
       // Add onload attribute to body
       let parts = html.split('<body')
       html = parts[0] + '<body onload="onload7846552()"' + parts.slice(1).join('<body')
+
       // Add script code
       headhtml += '\n<script type="text/javascript">\n\n' + script.join('\n') + '\n\nfunction onload7846552() {\n' + onload.join('\n') + '\n}\n\n</script>'
+
       // Add annotation data
       headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
+
       // Add to <head>
       parts = html.split('</head>')
       html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
@@ -200,18 +223,45 @@ function loadGeniusAnnotations (song, cb) {
   })
 }
 
-function getCleanLyricsContainer () {
-  if (!document.getElementById('lyricscontainer')) {
-    const topContainer = document.querySelector('.Root__top-container')
-    topContainer.style.width = '70%'
-    topContainer.style.float = 'left'
-    const container = document.createElement('div')
-    container.id = 'lyricscontainer'
-    container.style = 'min-height: 100%; width: 30%; position: relative; z-index: 1; float:left; '
-    topContainer.parentNode.insertBefore(container, topContainer.nextSibling)
-  } else {
-    document.getElementById('lyricscontainer').innerHTML = ''
+function onResize () {
+  let iframe = document.getElementById('lyricsiframe')
+  if (iframe) {
+    iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
+    iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
   }
+}
+function initResize () {
+  window.addEventListener('mousemove', onMouseMoveResize)
+  window.addEventListener('mouseup', stopResize)
+  window.removeEventListener('resize', onResize)
+}
+function onMouseMoveResize (e) {
+  currentSize = 100 - (e.clientX / document.body.clientWidth * 100)
+  resizeLeftContainer.style.width = (100 - currentSize) + '%'
+  resizeContainer.style.width = currentSize + '%'
+}
+function stopResize () {
+  window.removeEventListener('mousemove', onMouseMoveResize)
+  window.removeEventListener('mouseup', stopResize)
+  window.addEventListener('resize', onResize)
+  onResize()
+  GM.setValue('currentsize', currentSize)
+}
+function getCleanLyricsContainer () {
+  const topContainer = document.querySelector('.Root__top-container')
+  if (!document.getElementById('lyricscontainer')) {
+    topContainer.style.width = (100 - currentSize) + '%'
+    topContainer.style.float = 'left'
+    resizeContainer = document.createElement('div')
+    resizeContainer.id = 'lyricscontainer'
+    resizeContainer.style = 'min-height: 100%; width: ' + currentSize + '%; position: relative; z-index: 1; float:left'
+    topContainer.parentNode.insertBefore(resizeContainer, topContainer.nextSibling)
+  } else {
+    resizeContainer = document.getElementById('lyricscontainer')
+    resizeContainer.innerHTML = ''
+  }
+  resizeLeftContainer = topContainer
+
   return document.getElementById('lyricscontainer')
 }
 
@@ -227,10 +277,39 @@ function hideLyrics () {
 function showLyrics (song, searchresultsLengths) {
   const container = getCleanLyricsContainer()
 
+  const separator = document.createElement('span')
+  separator.setAttribute('class', 'second-line-separator')
+  separator.appendChild(document.createTextNode('•'))
+
+  const bar = document.createElement('div')
+  bar.style.fontSize = '0.7em'
+  container.appendChild(bar)
+
+  // Resize button
+  const resizeButton = document.createElement('span')
+  resizeButton.style.fontSize = '1.3em'
+  resizeButton.style.background = 'red'
+  resizeButton.style.cursor = 'ew-resize'
+  resizeButton.appendChild(document.createTextNode('⍇'))
+  resizeButton.addEventListener('mousedown', initResize)
+  bar.appendChild(resizeButton)
+
+  bar.appendChild(separator.cloneNode(true))
+
+  // TODO: clear cache button
+
+  const hidebutton = document.createElement('a')
+  hidebutton.href = '#'
+  hidebutton.appendChild(document.createTextNode('Hide'))
+  hidebutton.addEventListener('click', function hidebuttonClick (ev) {
+    ev.preventDefault()
+    hideLyrics()
+  })
+  bar.appendChild(hidebutton)
+
   if (searchresultsLengths) {
-    const bar = document.createElement('div')
-    bar.style.fontSize = '0.7em'
-    container.appendChild(bar)
+    bar.appendChild(separator.cloneNode(true))
+    
     const backbutton = document.createElement('a')
     backbutton.href = '#'
     if (searchresultsLengths === true) {
@@ -256,6 +335,7 @@ function showLyrics (song, searchresultsLengths) {
   loadGeniusAnnotations(song, function loadGeniusAnnotationsCb (song, annotations) {
     loadGeniusAssets(song, annotations, function loadGeniusAssetsCb (html) {
       iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
+      iframe.style.position = 'fixed'
     })
   })
 }
@@ -286,14 +366,21 @@ function listSongs (hits) {
   })
 }
 
-function addLyrics (force) {
-  const songTitle = document.querySelector('.track-info__name.ellipsis-one-line').innerText
+function addLyrics (force, onlyFirstArtist) {
+  let songTitle = document.querySelector('.track-info__name.ellipsis-one-line').innerText
+  let feat = songTitle.indexOf(' (feat')
+  if (feat !== -1) {
+    songTitle = songTitle.substring(0, feat).trim()
+  }
   const songArtistsArr = []
   document.querySelector('.track-info__artists.ellipsis-one-line').querySelectorAll('a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
-  const songArtists = songArtistsArr.join(' ')
+  let songArtists = songArtistsArr.join(' ')
   if (force || currentTitle !== songTitle || currentArtists !== songArtists) {
     currentTitle = songTitle
     currentArtists = songArtists
+    if (onlyFirstArtist) {
+      songArtists = songArtistsArr[0]
+    }
     let hitFromCache = getLyricsSelection(songTitle, songArtists)
     if (!force && hitFromCache) {
       showLyrics(hitFromCache, true)
@@ -302,6 +389,12 @@ function addLyrics (force) {
         const hits = r.response.sections[0].hits
         if (hits.length === 0) {
           hideLyrics()
+          if (!onlyFirstArtist) {
+            // Try again with only the first artist
+            addLyrics(true, true)
+          } else {
+            // TODO: show search field?
+          }
         } else if (hits.length === 1) {
           showLyrics(hits[0])
         } else {
