@@ -18,7 +18,9 @@ var currentTitle = ''
 var currentArtists = ''
 var resizeLeftContainer
 var resizeContainer
-var currentSize = 30.0
+var optionCurrentSize = 30.0
+var optionAutoShow = true
+var mainIv
 
 function getHostname (url) {
   const a = document.createElement('a')
@@ -26,39 +28,44 @@ function getHostname (url) {
   return a.hostname
 }
 
-function metricPrefix (n, decimals) {
+function metricPrefix (n, decimals, k) {
   // http://stackoverflow.com/a/18650828
   if (n <= 0) {
     return String(n)
   }
-  let k = 1000
+  k = k || 1000
   let dm = decimals <= 0 ? 0 : decimals || 2
   let sizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
   let i = Math.floor(Math.log(n) / Math.log(k))
   return parseFloat((n / Math.pow(k, i)).toFixed(dm)) + sizes[i]
 }
 
-async function loadCache () {
-  const [cSize, selectionCacheJSON, requestCacheJSON] = await Promise.all([GM.getValue('currentsize', 30.0), GM.getValue('selectioncache', '{}'), GM.getValue('requestcache', '{}')])
+function loadCache () {
+  Promise.all([GM.getValue('selectioncache', '{}'), 
+               GM.getValue('requestcache', '{}'), 
+               GM.getValue('optioncurrentsize', 30.0), 
+               GM.getValue('optionautoshow', true),]).then(function(values) {
+    selectionCache = JSON.parse(values[0])
 
-  currentSize = cSize
+    requestCache = JSON.parse(values[1])
 
-  selectionCache = JSON.parse(selectionCacheJSON)
-
-  requestCache = JSON.parse(requestCacheJSON)
-  /*
-  requestCache = {
-     "cachekey0": "121648565.5\njsondata123",
-     ...
-     }
-  */
-  for (let prop in requestCache) {
-    // Delete cached values, that are older than 2 hours
-    let time = JSON.parse(requestCache[prop].split('\n')[0])
-    if ((new Date()).getTime() - (new Date(time)).getTime() > 2 * 60 * 60 * 1000) {
-      delete requestCache[prop]
+    optionCurrentSize = values[2]
+    
+    optionAutoShow = values[3]
+    /*
+    requestCache = {
+       "cachekey0": "121648565.5\njsondata123",
+       ...
+       }
+    */
+    for (let prop in requestCache) {
+      // Delete cached values, that are older than 2 hours
+      let time = JSON.parse(requestCache[prop].split('\n')[0])
+      if ((new Date()).getTime() - (new Date(time)).getTime() > 2 * 60 * 60 * 1000) {
+        delete requestCache[prop]
+      }
     }
-  }
+  })
 }
 
 function request (obj) {
@@ -130,7 +137,62 @@ function geniusSearch (query, cb) {
   })
 }
 
-function loadGeniusAssets (song, annotations, cb) {
+function loadGeniusSong (song, cb) {
+  request({
+    url: song.result.url,
+    error: function loadGeniusSongOnError (response) {
+      alert('Error loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
+    },
+    load: function loadGeniusSongOnLoad (response) {
+      cb(response.responseText)
+    }
+  })
+}
+
+function loadGeniusAnnotations (song, html, cb) {
+  const regex = /annotation-fragment="\d+"/g
+  let m = html.match(regex)
+  if(!m) {
+    // No annotations, skip loading from API
+    return cb(song, html, {})
+  }
+  
+  m = m.map((s) => s.match(/\d+/)[0])
+  const ids = m.map((id) => 'ids[]='+id)
+  
+  const apiurl = 'https://genius.com/api/referents/multi?text_format=html%2Cplain&' + ids.join("&")
+  
+  request({
+    url: apiurl,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    error: function loadGeniusAnnotationsOnError (response) {
+      alert('Error loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
+    },
+    load: function loadGeniusAnnotationsOnLoad (response) {
+      const r = JSON.parse(response.responseText).response
+      const annotations = {}
+      if (r.referents.forEach) {
+        r.referents.forEach(function forEachReferent (referent) {
+          referent.annotations.forEach(function forEachAnnotation (annotation) {
+            annotations[annotation.id] = annotation
+          })
+        })
+      } else {
+        for (let refId in r.referents) {
+          const referent = r.referents[refId]
+          referent.annotations.forEach(function forEachAnnotation (annotation) {
+            annotations[annotation.id] = annotation
+          })
+        }
+      }
+      cb(song, html, annotations)
+    }
+  })
+}
+
+function combineGeniusResources(song, html, annotations, cb) {
   let script = []
   let onload = []
   let headhtml = ''
@@ -161,66 +223,33 @@ function loadGeniusAssets (song, annotations, cb) {
   script.push('  let div = document.querySelector(\'.header_with_cover_art-cover_art .cover_art\'); div.innerHTML = \'<a target="_blank" href="\' + url + \'">\' + div.innerHTML + \'</a>\'')
   script.push('}')
   onload.push('clickableTitle037()')
-
+  
   // Open real page if not in frame
   onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
+  
+  
+  // Make annotations clickable
+  const regex = /annotation-fragment="(\d+)"/g
+  html = html.replace(regex, 'onclick="showAnnotation1234($1)"')
 
-  request({
-    url: song.result.url,
-    error: function loadGeniusAssetsOnError (response) {
-      alert('Error loadGeniusAssets(' + JSON.stringify(song) + ', cb):\n' + response)
-    },
-    load: function loadGeniusAssetsOnLoad (response) {
-      let html = response.responseText
+  // Change design
+  html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
 
-      // Make annotations clickable
-      const regex = /annotation-fragment="(\d+)"/g
-      html = html.replace(regex, 'onclick="showAnnotation1234($1)"')
+  // Add onload attribute to body
+  let parts = html.split('<body')
+  html = parts[0] + '<body onload="onload7846552()"' + parts.slice(1).join('<body')
 
-      // Change design
-      html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
+  // Add script code
+  headhtml += '\n<script type="text/javascript">\n\n' + script.join('\n') + '\n\nfunction onload7846552() {\n' + onload.join('\n') + '\n}\n\n</script>'
 
-      // Add onload attribute to body
-      let parts = html.split('<body')
-      html = parts[0] + '<body onload="onload7846552()"' + parts.slice(1).join('<body')
+  // Add annotation data
+  headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
 
-      // Add script code
-      headhtml += '\n<script type="text/javascript">\n\n' + script.join('\n') + '\n\nfunction onload7846552() {\n' + onload.join('\n') + '\n}\n\n</script>'
+  // Add to <head>
+  parts = html.split('</head>')
+  html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
 
-      // Add annotation data
-      headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
-
-      // Add to <head>
-      parts = html.split('</head>')
-      html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
-
-      cb(html)
-    }
-  })
-}
-
-function loadGeniusAnnotations (song, cb) {
-  const apiurl = 'https://genius.com/api/referents/?text_format=html&song_id=' + song.result.id
-  // TODO multiple pages e.g. https://genius.com/api/referents/?text_format=html&song_id=81159&page=1 and https://genius.com/api/referents/?text_format=html&song_id=81159&page=2 and ...
-  request({
-    url: apiurl,
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    },
-    error: function loadGeniusAnnotationsOnError (response) {
-      alert('Error loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
-    },
-    load: function loadGeniusAnnotationsOnLoad (response) {
-      const r = JSON.parse(response.responseText).response
-      const annotations = {}
-      r.referents.forEach(function forEachReferent (referent) {
-        referent.annotations.forEach(function forEachAnnotation (annotation) {
-          annotations[annotation.id] = annotation
-        })
-      })
-      cb(song, annotations)
-    }
-  })
+  cb(html)
 }
 
 function onResize () {
@@ -236,25 +265,25 @@ function initResize () {
   window.removeEventListener('resize', onResize)
 }
 function onMouseMoveResize (e) {
-  currentSize = 100 - (e.clientX / document.body.clientWidth * 100)
-  resizeLeftContainer.style.width = (100 - currentSize) + '%'
-  resizeContainer.style.width = currentSize + '%'
+  optionCurrentSize = 100 - (e.clientX / document.body.clientWidth * 100)
+  resizeLeftContainer.style.width = (100 - optionCurrentSize) + '%'
+  resizeContainer.style.width = optionCurrentSize + '%'
 }
 function stopResize () {
   window.removeEventListener('mousemove', onMouseMoveResize)
   window.removeEventListener('mouseup', stopResize)
   window.addEventListener('resize', onResize)
   onResize()
-  GM.setValue('currentsize', currentSize)
+  GM.setValue('optioncurrentsize', optionCurrentSize)
 }
 function getCleanLyricsContainer () {
   const topContainer = document.querySelector('.Root__top-container')
   if (!document.getElementById('lyricscontainer')) {
-    topContainer.style.width = (100 - currentSize) + '%'
+    topContainer.style.width = (100 - optionCurrentSize) + '%'
     topContainer.style.float = 'left'
     resizeContainer = document.createElement('div')
     resizeContainer.id = 'lyricscontainer'
-    resizeContainer.style = 'min-height: 100%; width: ' + currentSize + '%; position: relative; z-index: 1; float:left'
+    resizeContainer.style = 'min-height: 100%; width: ' + optionCurrentSize + '%; position: relative; z-index: 1; float:left'
     topContainer.parentNode.insertBefore(resizeContainer, topContainer.nextSibling)
   } else {
     resizeContainer = document.getElementById('lyricscontainer')
@@ -266,12 +295,14 @@ function getCleanLyricsContainer () {
 }
 
 function hideLyrics () {
+  clearInterval(mainIv)
   if (document.getElementById('lyricscontainer')) {
     document.getElementById('lyricscontainer').parentNode.removeChild(document.getElementById('lyricscontainer'))
     const topContainer = document.querySelector('.Root__top-container')
     topContainer.style.width = '100%'
     topContainer.style.removeProperty('float')
   }
+  addLyricsButton()
 }
 
 function showLyrics (song, searchresultsLengths) {
@@ -279,6 +310,7 @@ function showLyrics (song, searchresultsLengths) {
 
   const separator = document.createElement('span')
   separator.setAttribute('class', 'second-line-separator')
+  separator.setAttribute('style', 'padding:0px 3px')
   separator.appendChild(document.createTextNode('•'))
 
   const bar = document.createElement('div')
@@ -287,26 +319,51 @@ function showLyrics (song, searchresultsLengths) {
 
   // Resize button
   const resizeButton = document.createElement('span')
-  resizeButton.style.fontSize = '1.3em'
-  resizeButton.style.background = 'red'
+  resizeButton.style.fontSize = '1.8em'
   resizeButton.style.cursor = 'ew-resize'
-  resizeButton.appendChild(document.createTextNode('⍇'))
+  resizeButton.style.color = 'white'
+  resizeButton.appendChild(document.createTextNode('⇹'))
   resizeButton.addEventListener('mousedown', initResize)
   bar.appendChild(resizeButton)
 
   bar.appendChild(separator.cloneNode(true))
 
-  // TODO: clear cache button
-
-  const hidebutton = document.createElement('a')
-  hidebutton.href = '#'
-  hidebutton.appendChild(document.createTextNode('Hide'))
-  hidebutton.addEventListener('click', function hidebuttonClick (ev) {
+  // Hide button
+  const hideButton = document.createElement('a')
+  hideButton.href = '#'
+  hideButton.appendChild(document.createTextNode('Hide'))
+  hideButton.addEventListener('click', function hideButtonClick (ev) {
     ev.preventDefault()
     hideLyrics()
   })
-  bar.appendChild(hidebutton)
+  bar.appendChild(hideButton)
 
+  bar.appendChild(separator.cloneNode(true))
+
+  // Config button
+  const configButton = document.createElement('a')
+  configButton.href = '#'
+  configButton.appendChild(document.createTextNode('Options'))
+  configButton.addEventListener('click', function configButtonClick (ev) {
+    ev.preventDefault()
+    config()
+  })
+  bar.appendChild(configButton)
+
+  bar.appendChild(separator.cloneNode(true))
+
+  // Wrong lyrics
+  const wrongLyricsButton = document.createElement('a')
+  wrongLyricsButton.href = '#'
+  wrongLyricsButton.appendChild(document.createTextNode('Wrong lyrics'))
+  wrongLyricsButton.addEventListener('click', function wrongLyricsButtonClick (ev) {
+    ev.preventDefault()
+    // TODO delete enty from selection cache
+    alert('TODO delete enty from selection cache')
+  })
+  bar.appendChild(wrongLyricsButton)
+
+  // Back button
   if (searchresultsLengths) {
     bar.appendChild(separator.cloneNode(true))
     
@@ -331,17 +388,22 @@ function showLyrics (song, searchresultsLengths) {
   iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(spinner)
   iframe.style.width = container.clientWidth - 1 + 'px'
   iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
-
-  loadGeniusAnnotations(song, function loadGeniusAnnotationsCb (song, annotations) {
-    loadGeniusAssets(song, annotations, function loadGeniusAssetsCb (html) {
-      iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
-      iframe.style.position = 'fixed'
+  loadGeniusSong(song, function loadGeniusSongCb (html) {
+    loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
+      combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html) {
+        iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
+        iframe.style.position = 'fixed'
+      })
     })
   })
 }
 
-function listSongs (hits) {
-  const container = getCleanLyricsContainer()
+function listSongs (hits, container, query) {
+  if (!container) {
+    container = getCleanLyricsContainer()
+  }
+  
+  // TODO add back to search field
 
   const trackhtml = '<div class="tracklist-col position-outer"><div class="tracklist-play-pause tracklist-top-align"><span style="color:silver;font-size:2.0em">🅖</span></div><div class="position tracklist-top-align"><span style="font-size:1.5em">📄</span></div></div><div class="tracklist-col name"><div class="track-name-wrapper tracklist-top-align"><div class="tracklist-name ellipsis-one-line" dir="auto">$title</div><div class="second-line"><span class="TrackListRow__explicit-label">$lyrics_state</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__artist-name-link" href="#">$artist</a></span><span class="second-line-separator" aria-label="in album">•</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__album-name-link" href="#">👁 <span style="font-size:0.8em">$stats.pageviews</span></a></span></div></div></div>'
   container.innerHTML = '<section class="tracklist-container"><ol class="tracklist" style="width:99%"></ol></section>'
@@ -378,8 +440,9 @@ function addLyrics (force, onlyFirstArtist) {
   if (force || currentTitle !== songTitle || currentArtists !== songArtists) {
     currentTitle = songTitle
     currentArtists = songArtists
+    const firstArtist = songArtistsArr[0]
     if (onlyFirstArtist) {
-      songArtists = songArtistsArr[0]
+      songArtists = firstArtist
     }
     let hitFromCache = getLyricsSelection(songTitle, songArtists)
     if (!force && hitFromCache) {
@@ -389,11 +452,11 @@ function addLyrics (force, onlyFirstArtist) {
         const hits = r.response.sections[0].hits
         if (hits.length === 0) {
           hideLyrics()
-          if (!onlyFirstArtist) {
+          if (!onlyFirstArtist && firstArtist != songArtists) {
             // Try again with only the first artist
-            addLyrics(true, true)
-          } else {
-            // TODO: show search field?
+            addLyrics(force?true:false, true)
+          } else if(force) {
+            showSearchField()
           }
         } else if (hits.length === 1) {
           showLyrics(hits[0])
@@ -405,12 +468,118 @@ function addLyrics (force, onlyFirstArtist) {
   }
 }
 
+
+function searchByQuery (query, container) {
+  geniusSearch(query, function geniusSearchCb (r) {
+    const hits = r.response.sections[0].hits
+    if (hits.length === 0) {
+      alert('No search results')
+    } else {
+      listSongs(hits, container, query)
+    }
+  })
+}
+
+function showSearchField () {
+  const b = getCleanLyricsContainer()
+  b.appendChild(document.createTextNode('Search genius.com'))
+  b.style.paddingRight = '15px'
+  const input = b.appendChild(document.createElement('input'))
+  input.className = 'SearchInputBox__input'
+  input.placeholder = 'Search genius.com...'
+  if (currentArtists) {
+    input.value = currentArtists
+  }
+  input.addEventListener('change', function onSearchLyricsButtonClick() {
+    if (input.value) {
+      searchByQuery(input.value, b)
+    }
+  })
+  input.addEventListener('keyup', function onSearchLyricsKeyUp(ev) {
+    if (ev.keyCode === 13) {
+      ev.preventDefault();
+      if (input.value) {
+        searchByQuery(input.value, b)
+      }
+    }
+  })
+  document.body.appendChild(b)
+  input.focus()
+}
+
+
+function addLyricsButton () {
+  if(document.getElementById('showlyricsbutton')) {
+    return 
+  }
+  const b = document.createElement('div')
+  b.setAttribute('id', 'showlyricsbutton')
+  b.setAttribute('style', 'position:absolute; top: 0px; right:0px; color:#ffff64; cursor:pointer')
+  b.setAttribute('title', 'Load lyrics from genius.com')
+  b.appendChild(document.createTextNode('🅖'))
+  b.addEventListener('click', function onShowLyricsButtonClick() {
+   addLyrics(true)
+  })
+  document.body.appendChild(b)
+}
+
+function config () {
+  loadCache()
+  const win = document.createElement('div')
+  win.setAttribute('style', 'position:absolute; top: 10px; right:10px; padding:15px; background:white; border-radius:10%; border:2px solid black; color:black')
+  document.body.appendChild(win)
+  const h1 = document.createElement('h1')
+  win.appendChild(h1).appendChild(document.createTextNode('Options'))
+  const a = document.createElement('a')
+  a.href = 'https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues'
+  a.style = 'color:blue'
+  win.appendChild(a).appendChild(document.createTextNode('Report problem: github.com/cvzi/Spotify-Genius-Lyrics-userscript'))
+  
+  // Switch: Show automatically
+  let div = document.createElement('div')
+  win.appendChild(div)
+  const checkAutoShow = div.appendChild(document.createElement('input'))
+  checkAutoShow.type = 'checkbox'
+  checkAutoShow.checked = optionAutoShow === true
+  const onAutoShow = function onAutoShowListener() {
+    GM.setValue('optionautoshow', checkAutoShow.checked === true)
+  }
+  checkAutoShow.addEventListener('click', onAutoShow)
+  checkAutoShow.addEventListener('change', onAutoShow)
+  div.appendChild(document.createTextNode(' Automatically show lyrics when new song starts'))
+  div.appendChild(document.createElement('br'))
+  div.appendChild(document.createTextNode('(if you disable this, a small button will appear in the top right corner to show the lyrics)'))
+
+  const closeButton = win.appendChild(document.createElement('button'))
+  closeButton.appendChild(document.createTextNode('Close'))
+  closeButton.style.color = 'black'
+  closeButton.addEventListener('click', function onCloseButtonClick() {
+    win.parentNode.removeChild(win)
+  })
+
+  const bytes = metricPrefix(JSON.stringify(selectionCache).length + JSON.stringify(requestCache).length, 2, 1024) + 'Bytes'
+  const clearCacheButton = win.appendChild(document.createElement('button'))
+  clearCacheButton.appendChild(document.createTextNode('Clear cache (' + bytes + ')'))
+  clearCacheButton.style.color = 'black'
+  clearCacheButton.addEventListener('click', function onClearCacheButtonClick() {
+    Promise.all([GM.setValue('selectioncache', '{}'), GM.setValue('requestcache', '{}')]).then(function() {
+      clearCacheButton.innerHTML = 'Cleared';
+    })
+  })
+}
+
+
 function main () {
   if (document.querySelector('.now-playing')) {
-    addLyrics()
+    if(optionAutoShow) {
+      addLyrics()
+    } else {
+      addLyricsButton() 
+    }
   }
 }
 
 loadCache()
-window.setInterval(main, 2000)
+
+mainIv = window.setInterval(main, 2000)
 window.addEventListener('resize', onResize)
