@@ -113,6 +113,14 @@ function rememberLyricsSelection (title, artists, jsonHit) {
   GM.setValue('selectioncache', JSON.stringify(selectionCache))
 }
 
+function forgetLyricsSelection (title, artists) {
+  const cachekey = title + '--' + artists
+  if (cachekey in selectionCache) {
+    delete selectionCache[cachekey]
+    GM.setValue('selectioncache', JSON.stringify(selectionCache))
+  }
+}
+
 function getLyricsSelection (title, artists) {
   const cachekey = title + '--' + artists
   if (cachekey in selectionCache) {
@@ -358,8 +366,8 @@ function showLyrics (song, searchresultsLengths) {
   wrongLyricsButton.appendChild(document.createTextNode('Wrong lyrics'))
   wrongLyricsButton.addEventListener('click', function wrongLyricsButtonClick (ev) {
     ev.preventDefault()
-    // TODO delete enty from selection cache
-    alert('TODO delete enty from selection cache')
+    forgetLyricsSelection(currentTitle, currentArtists, this.dataset.hit)
+    showSearchField(currentArtists + ' '+currentTitle)
   })
   bar.appendChild(wrongLyricsButton)
 
@@ -403,10 +411,26 @@ function listSongs (hits, container, query) {
     container = getCleanLyricsContainer()
   }
   
-  // TODO add back to search field
+  // Back to search button
+  const backToSearchButton = document.createElement('a')
+  backToSearchButton.href = '#'
+  backToSearchButton.appendChild(document.createTextNode('Search again'))
+  backToSearchButton.addEventListener('click', function backToSearchButtonClick (ev) {
+    ev.preventDefault()
+    if(query) {
+      showSearchField(query)
+    } else if(currentArtists) {
+      showSearchField(currentArtists + ' '+currentTitle)
+    } else {
+      showSearchField()
+    }
+  })
 
+  // List search results
   const trackhtml = '<div class="tracklist-col position-outer"><div class="tracklist-play-pause tracklist-top-align"><span style="color:silver;font-size:2.0em">🅖</span></div><div class="position tracklist-top-align"><span style="font-size:1.5em">📄</span></div></div><div class="tracklist-col name"><div class="track-name-wrapper tracklist-top-align"><div class="tracklist-name ellipsis-one-line" dir="auto">$title</div><div class="second-line"><span class="TrackListRow__explicit-label">$lyrics_state</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__artist-name-link" href="#">$artist</a></span><span class="second-line-separator" aria-label="in album">•</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__album-name-link" href="#">👁 <span style="font-size:0.8em">$stats.pageviews</span></a></span></div></div></div>'
   container.innerHTML = '<section class="tracklist-container"><ol class="tracklist" style="width:99%"></ol></section>'
+
+  container.insertBefore(backToSearchButton, container.firstChild)
 
   const ol = container.querySelector('ol.tracklist')
   const searchresultsLengths = hits.length
@@ -480,14 +504,17 @@ function searchByQuery (query, container) {
   })
 }
 
-function showSearchField () {
+function showSearchField (query) {
   const b = getCleanLyricsContainer()
   b.appendChild(document.createTextNode('Search genius.com'))
   b.style.paddingRight = '15px'
   const input = b.appendChild(document.createElement('input'))
   input.className = 'SearchInputBox__input'
   input.placeholder = 'Search genius.com...'
-  if (currentArtists) {
+
+  if (query) {
+    input.value = query
+  } else if (currentArtists) {
     input.value = currentArtists
   }
   input.addEventListener('change', function onSearchLyricsButtonClick() {
