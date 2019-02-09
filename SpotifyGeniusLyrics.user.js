@@ -2,7 +2,7 @@
 // @name         Spotify Genius Lyrics
 // @description  Show lyrics from genius.com on the Spotify web player
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
-// @copyright    2019, cuzi (https://github.com/cvzi
+// @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @version      2
 // @include      https://open.spotify.com/*
@@ -58,10 +58,12 @@ function loadCache () {
        ...
        }
     */
+    const now = (new Date()).getTime()
+    const exp = 2 * 60 * 60 * 1000
     for (let prop in requestCache) {
       // Delete cached values, that are older than 2 hours
-      let time = JSON.parse(requestCache[prop].split('\n')[0])
-      if ((new Date()).getTime() - (new Date(time)).getTime() > 2 * 60 * 60 * 1000) {
+      const time = JSON.parse(requestCache[prop].split('\n')[0])
+      if ((now - (new Date(time)).getTime()) > exp) {
         delete requestCache[prop]
       }
     }
@@ -222,7 +224,25 @@ function combineGeniusResources(song, html, annotations, cb) {
   onload.push('hideSecondaryFooter895()')
 
   // Show annotations function
-  script.push('function showAnnotation1234(id) { if(id in annotations1234) { let annotation = annotations1234[id]; let main = document.querySelector(".column_layout-column_span-initial_content"); main.querySelector(".annotation_label h3").innerHTML = decodeHTML652(annotation.created_by.name); main.querySelector(".rich_text_formatting").innerHTML = decodeHTML652(annotation.body.html); }}')
+  script.push('function showAnnotation1234(ev, id) {')
+  script.push('  document.querySelectorAll(".song_body-lyrics .referent--yellow.referent--highlighted").forEach((e) => e.className = e.className.replace(/\\breferent--yellow\\b/, "").replace(/\\breferent--highlighted\\b/, ""))')
+  script.push('  this.className += " referent--yellow referent--highlighted";')
+  script.push('  if(id in annotations1234) {')
+  script.push('    let annotation = annotations1234[id];')
+  script.push('    let main = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary");')
+  script.push('    main.style.paddingRight = 0;')
+  script.push('    main.innerHTML = "";')
+  script.push('    const div0 = document.createElement("div");')
+  script.push('    div0.className = "column_layout-flex_column-fill_column";')
+  script.push('    main.appendChild(div0);')
+  script.push('    const arrowTop = this.offsetTop;')
+  script.push('    const paddingTop = window.scrollY - main.offsetTop - main.parentNode.offsetTop;')
+  script.push('    let html = \'<div class="annotation_sidebar_arrow" style="top: \'+arrowTop+\'px;"><svg src="left_arrow.svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10.87 21.32"><path d="M9.37 21.32L0 10.66 9.37 0l1.5 1.32-8.21 9.34L10.87 20l-1.5 1.32"></path></svg></div>\';')
+  script.push('    html += \'\\n<div class="u-relative nganimate-fade_slide_from_left" style="margin-left:1px;padding-top:\'+paddingTop+\'px; padding-left:2px; border-left:3px #99a7ee solid"><div class="annotation_label">$author</div><div class="rich_text_formatting">$body</div></div>\';')
+  script.push('    html = html.replace(/\\$body/g, decodeHTML652(annotation.body.html)).replace(/\\$author/g, decodeHTML652(annotation.created_by.name));')
+  script.push('    div0.innerHTML = html;')
+  script.push('  }')
+  script.push('}')
   onload.push('annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML);')
 
   // Make song title clickable
@@ -238,7 +258,7 @@ function combineGeniusResources(song, html, annotations, cb) {
   
   // Make annotations clickable
   const regex = /annotation-fragment="(\d+)"/g
-  html = html.replace(regex, 'onclick="showAnnotation1234($1)"')
+  html = html.replace(regex, 'onclick="showAnnotation1234.call(this, event, $1)"')
 
   // Change design
   html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
@@ -458,10 +478,11 @@ function addLyrics (force, onlyFirstArtist) {
   if (feat !== -1) {
     songTitle = songTitle.substring(0, feat).trim()
   }
+  const musicIsPlaying = -1 !== document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause')
   const songArtistsArr = []
   document.querySelector('.track-info__artists.ellipsis-one-line').querySelectorAll('a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
   let songArtists = songArtistsArr.join(' ')
-  if (force || currentTitle !== songTitle || currentArtists !== songArtists) {
+  if (force || (musicIsPlaying && (currentTitle !== songTitle || currentArtists !== songArtists))) {
     currentTitle = songTitle
     currentArtists = songArtists
     const firstArtist = songArtistsArr[0]
