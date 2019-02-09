@@ -2,7 +2,7 @@
 // @name         Spotify Genius Lyrics
 // @description  Show lyrics from genius.com on the Spotify web player
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
-// @copyright    2019, cuzi (https://github.com/cvzi
+// @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @version      2
 // @include      https://open.spotify.com/*
@@ -58,10 +58,12 @@ function loadCache () {
        ...
        }
     */
+    const now = (new Date()).getTime()
+    const exp = 2 * 60 * 60 * 1000
     for (let prop in requestCache) {
       // Delete cached values, that are older than 2 hours
-      let time = JSON.parse(requestCache[prop].split('\n')[0])
-      if ((new Date()).getTime() - (new Date(time)).getTime() > 2 * 60 * 60 * 1000) {
+      const time = JSON.parse(requestCache[prop].split('\n')[0])
+      if ((now - (new Date(time)).getTime()) > exp) {
         delete requestCache[prop]
       }
     }
