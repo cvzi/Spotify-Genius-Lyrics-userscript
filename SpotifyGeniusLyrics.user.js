@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      2
+// @version      3
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -78,7 +78,6 @@ function request (obj) {
 
   let headers = {
     'Referer': obj.url,
-    'data': obj.data,
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'Host': getHostname(obj.url),
     'User-Agent': navigator.userAgent
@@ -90,8 +89,9 @@ function request (obj) {
   return GM.xmlHttpRequest({
     url: obj.url,
     method: obj.method ? obj.method : 'GET',
+    data: obj.data,
     headers: headers,
-    onerror: obj.error ? obj.error : function genericOnError (response) { console.log(response) },
+    onerror: obj.error ? obj.error : function xmlHttpRequestGenericOnError (response) { console.log(response) },
     onload: function xmlHttpRequestOnLoad (response) {
       const time = (new Date()).toJSON()
       // Chrome fix: Otherwise JSON.stringify(requestCache) omits responseText
@@ -482,7 +482,7 @@ function addLyrics (force, onlyFirstArtist) {
   const songArtistsArr = []
   document.querySelector('.track-info__artists.ellipsis-one-line').querySelectorAll('a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
   let songArtists = songArtistsArr.join(' ')
-  if (force || (musicIsPlaying && (currentTitle !== songTitle || currentArtists !== songArtists))) {
+  if (force || (!document.hidden && musicIsPlaying && (currentTitle !== songTitle || currentArtists !== songArtists))) {
     currentTitle = songTitle
     currentArtists = songArtists
     const firstArtist = songArtistsArr[0]
