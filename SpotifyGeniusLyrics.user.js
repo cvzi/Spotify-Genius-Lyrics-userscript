@@ -62,7 +62,7 @@ function loadCache () {
     const exp = 2 * 60 * 60 * 1000
     for (let prop in requestCache) {
       // Delete cached values, that are older than 2 hours
-      const time = JSON.parse(requestCache[prop].split('\n')[0])
+      const time = requestCache[prop].split('\n')[0]
       if ((now - (new Date(time)).getTime()) > exp) {
         delete requestCache[prop]
       }
