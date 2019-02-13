@@ -213,15 +213,22 @@ function combineGeniusResources(song, html, annotations, cb) {
   script.push('function decodeHTML652 (s) { return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">") }')
 
   // Hide cookies box function
-  script.push('function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}')
-  onload.push('iv458 = window.setInterval(hideCookieBox458, 500)')
+  // script.push('function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}')
+  // onload.push('iv458 = window.setInterval(hideCookieBox458, 500)')
 
   // Hide footer
-  script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){f[0].parentNode.removeChild(f[0]);f[1].parentNode.removeChild(f[1])}}')
+  script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){f[0].remove();f[1].remove()}}')
   script.push('function hideSecondaryFooter895 () {if(document.querySelector(".footer.footer--secondary")){document.querySelector(".footer.footer--secondary").parentNode.removeChild(document.querySelector(".footer.footer--secondary"))}}')
 
   onload.push('hideFooter895()')
   onload.push('hideSecondaryFooter895()')
+  
+  // Hide other stuff
+  script.push('function hideStuff235 () {')
+  script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); grayBox.remove()') 
+  script.push('  document.querySelector(".header .header-expand_nav_menu").remove()')
+  script.push('}')
+  onload.push('hideStuff235()')
 
   // Show annotations function
   script.push('function showAnnotation1234(ev, id) {')
@@ -241,6 +248,7 @@ function combineGeniusResources(song, html, annotations, cb) {
   script.push('    html += \'\\n<div class="u-relative nganimate-fade_slide_from_left" style="margin-left:1px;padding-top:\'+paddingTop+\'px; padding-left:2px; border-left:3px #99a7ee solid"><div class="annotation_label">$author</div><div class="rich_text_formatting">$body</div></div>\';')
   script.push('    html = html.replace(/\\$body/g, decodeHTML652(annotation.body.html)).replace(/\\$author/g, decodeHTML652(annotation.created_by.name));')
   script.push('    div0.innerHTML = html;')
+  script.push('    targetBlankLinks145 (); // Change link target to _blank')
   script.push('  }')
   script.push('}')
   onload.push('annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML);')
@@ -252,6 +260,16 @@ function combineGeniusResources(song, html, annotations, cb) {
   script.push('}')
   onload.push('clickableTitle037()')
   
+  // Change links to target=_blank
+  script.push('function targetBlankLinks145 () {')
+  script.push('  const as = document.querySelectorAll(\'body a:not([href|="#"]):not([target=_blank])\')')
+  script.push('  as.forEach(function(a) {')
+  script.push('    a.target = "_blank";')
+  script.push('  })')
+  script.push('}')
+  onload.push('window.setTimeout(targetBlankLinks145, 1000)')
+
+  
   // Open real page if not in frame
   onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
   
@@ -262,6 +280,9 @@ function combineGeniusResources(song, html, annotations, cb) {
 
   // Change design
   html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
+  
+  // Remove cookie consent
+  html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
 
   // Add onload attribute to body
   let parts = html.split('<body')
