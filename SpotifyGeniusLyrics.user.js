@@ -12,6 +12,7 @@
 // @connect      genius.com
 // ==/UserScript==
 
+const isFirefox = typeof InstallTrigger !== 'undefined';
 var requestCache = {}
 var selectionCache = {}
 var currentTitle = ''
@@ -41,16 +42,16 @@ function metricPrefix (n, decimals, k) {
 }
 
 function loadCache () {
-  Promise.all([GM.getValue('selectioncache', '{}'), 
-               GM.getValue('requestcache', '{}'), 
-               GM.getValue('optioncurrentsize', 30.0), 
+  Promise.all([GM.getValue('selectioncache', '{}'),
+               GM.getValue('requestcache', '{}'),
+               GM.getValue('optioncurrentsize', 30.0),
                GM.getValue('optionautoshow', true),]).then(function(values) {
     selectionCache = JSON.parse(values[0])
 
     requestCache = JSON.parse(values[1])
 
     optionCurrentSize = values[2]
-    
+
     optionAutoShow = values[3]
     /*
     requestCache = {
@@ -166,12 +167,12 @@ function loadGeniusAnnotations (song, html, cb) {
     // No annotations, skip loading from API
     return cb(song, html, {})
   }
-  
+
   m = m.map((s) => s.match(/\d+/)[0])
   const ids = m.map((id) => 'ids[]='+id)
-  
+
   const apiurl = 'https://genius.com/api/referents/multi?text_format=html%2Cplain&' + ids.join("&")
-  
+
   request({
     url: apiurl,
     headers: {
@@ -222,18 +223,22 @@ function combineGeniusResources(song, html, annotations, cb) {
 
   onload.push('hideFooter895()')
   onload.push('hideSecondaryFooter895()')
-  
+
   // Hide other stuff
   script.push('function hideStuff235 () {')
-  script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); grayBox.remove()') 
+  script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); grayBox.remove()')
   script.push('  document.querySelector(".header .header-expand_nav_menu").remove()')
   script.push('}')
   onload.push('hideStuff235()')
 
   // Show annotations function
   script.push('function showAnnotation1234(ev, id) {')
+  script.push('  ev.preventDefault()')
   script.push('  document.querySelectorAll(".song_body-lyrics .referent--yellow.referent--highlighted").forEach((e) => e.className = e.className.replace(/\\breferent--yellow\\b/, "").replace(/\\breferent--highlighted\\b/, ""))')
   script.push('  this.className += " referent--yellow referent--highlighted";')
+  script.push('  if(typeof annotations1234 == "undefined") {')
+  script.push('    annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML)')
+  script.push('  }')
   script.push('  if(id in annotations1234) {')
   script.push('    let annotation = annotations1234[id];')
   script.push('    let main = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary");')
@@ -259,7 +264,7 @@ function combineGeniusResources(song, html, annotations, cb) {
   script.push('  let div = document.querySelector(\'.header_with_cover_art-cover_art .cover_art\'); div.innerHTML = \'<a target="_blank" href="\' + url + \'">\' + div.innerHTML + \'</a>\'')
   script.push('}')
   onload.push('clickableTitle037()')
-  
+
   // Change links to target=_blank
   script.push('function targetBlankLinks145 () {')
   script.push('  const as = document.querySelectorAll(\'body a:not([href|="#"]):not([target=_blank])\')')
@@ -269,18 +274,18 @@ function combineGeniusResources(song, html, annotations, cb) {
   script.push('}')
   onload.push('window.setTimeout(targetBlankLinks145, 1000)')
 
-  
+
   // Open real page if not in frame
   onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
-  
-  
+
+
   // Make annotations clickable
   const regex = /annotation-fragment="(\d+)"/g
   html = html.replace(regex, 'onclick="showAnnotation1234.call(this, event, $1)"')
 
   // Change design
   html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
-  
+
   // Remove cookie consent
   html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
 
@@ -298,7 +303,7 @@ function combineGeniusResources(song, html, annotations, cb) {
   parts = html.split('</head>')
   html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
 
-  cb(html)
+  cb(html, script, onload)
 }
 
 function onResize () {
@@ -415,7 +420,7 @@ function showLyrics (song, searchresultsLengths) {
   // Back button
   if (searchresultsLengths) {
     bar.appendChild(separator.cloneNode(true))
-    
+
     const backbutton = document.createElement('a')
     backbutton.href = '#'
     if (searchresultsLengths === true) {
@@ -439,8 +444,12 @@ function showLyrics (song, searchresultsLengths) {
   iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
-      combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html) {
-        iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
+      combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html, scripts, onload) {
+        if(isFirefox) {
+          iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
+        } else {
+          iframe.src = 'https://open.spotify.com/404#data:text/html;charset=utf-8,' + encodeURIComponent(scripts.join('\n')+'\n'+ onload.join('\n')) + '___SEP___' + encodeURIComponent(html)
+        }
         iframe.style.position = 'fixed'
       })
     })
@@ -451,7 +460,7 @@ function listSongs (hits, container, query) {
   if (!container) {
     container = getCleanLyricsContainer()
   }
-  
+
   // Back to search button
   const backToSearchButton = document.createElement('a')
   backToSearchButton.href = '#'
@@ -579,7 +588,7 @@ function showSearchField (query) {
 
 function addLyricsButton () {
   if(document.getElementById('showlyricsbutton')) {
-    return 
+    return
   }
   const b = document.createElement('div')
   b.setAttribute('id', 'showlyricsbutton')
@@ -603,7 +612,7 @@ function config () {
   a.href = 'https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues'
   a.style = 'color:blue'
   win.appendChild(a).appendChild(document.createTextNode('Report problem: github.com/cvzi/Spotify-Genius-Lyrics-userscript'))
-  
+
   // Switch: Show automatically
   let div = document.createElement('div')
   win.appendChild(div)
@@ -643,12 +652,17 @@ function main () {
     if(optionAutoShow) {
       addLyrics()
     } else {
-      addLyricsButton() 
+      addLyricsButton()
     }
   }
 }
 
-loadCache()
-
-mainIv = window.setInterval(main, 2000)
-window.addEventListener('resize', onResize)
+if(!isFirefox && document.location.href.startsWith('https://open.spotify.com/404#data:text/html;charset=utf-8,')) {
+  let code = decodeURIComponent(document.location.hash.split('#data:text/html;charset=utf-8,')[1]).split('___SEP___');
+  document.write(code[1])
+  window.setTimeout(function() {eval(code[0])}, 1000)
+} else {
+  loadCache()
+  mainIv = window.setInterval(main, 2000)
+  window.addEventListener('resize', onResize)
+}
