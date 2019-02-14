@@ -232,28 +232,36 @@ function combineGeniusResources(song, html, annotations, cb) {
   onload.push('hideStuff235()')
 
   // Show annotations function
+  script.push('function checkAnnotationHeight458() {')
+  script.push('  const annot = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary .column_layout-flex_column-fill_column")')
+  script.push('  const arrow = annot.querySelector(".annotation_sidebar_arrow")')
+  script.push('  if (arrow.offsetTop > arrow.nextElementSibling.clientHeight) {')
+  script.push('    arrow.nextElementSibling.style.paddingTop = (10 + parseInt(arrow.nextElementSibling.style.paddingTop) + arrow.offsetTop - arrow.nextElementSibling.clientHeight) + "px"')
+  script.push('  }')
+  script.push('}')
   script.push('function showAnnotation1234(ev, id) {')
   script.push('  ev.preventDefault()')
   script.push('  document.querySelectorAll(".song_body-lyrics .referent--yellow.referent--highlighted").forEach((e) => e.className = e.className.replace(/\\breferent--yellow\\b/, "").replace(/\\breferent--highlighted\\b/, ""))')
-  script.push('  this.className += " referent--yellow referent--highlighted";')
+  script.push('  this.className += " referent--yellow referent--highlighted"')
   script.push('  if(typeof annotations1234 == "undefined") {')
   script.push('    annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML)')
   script.push('  }')
   script.push('  if(id in annotations1234) {')
-  script.push('    let annotation = annotations1234[id];')
-  script.push('    let main = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary");')
-  script.push('    main.style.paddingRight = 0;')
-  script.push('    main.innerHTML = "";')
-  script.push('    const div0 = document.createElement("div");')
-  script.push('    div0.className = "column_layout-flex_column-fill_column";')
-  script.push('    main.appendChild(div0);')
-  script.push('    const arrowTop = this.offsetTop;')
-  script.push('    const paddingTop = window.scrollY - main.offsetTop - main.parentNode.offsetTop;')
+  script.push('    let annotation = annotations1234[id]')
+  script.push('    let main = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary")')
+  script.push('    main.style.paddingRight = 0')
+  script.push('    main.innerHTML = ""')
+  script.push('    const div0 = document.createElement("div")')
+  script.push('    div0.className = "column_layout-flex_column-fill_column"')
+  script.push('    main.appendChild(div0)')
+  script.push('    const arrowTop = this.offsetTop')
+  script.push('    const paddingTop = window.scrollY - main.offsetTop - main.parentNode.offsetTop')
   script.push('    let html = \'<div class="annotation_sidebar_arrow" style="top: \'+arrowTop+\'px;"><svg src="left_arrow.svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10.87 21.32"><path d="M9.37 21.32L0 10.66 9.37 0l1.5 1.32-8.21 9.34L10.87 20l-1.5 1.32"></path></svg></div>\';')
   script.push('    html += \'\\n<div class="u-relative nganimate-fade_slide_from_left" style="margin-left:1px;padding-top:\'+paddingTop+\'px; padding-left:2px; border-left:3px #99a7ee solid"><div class="annotation_label">$author</div><div class="rich_text_formatting">$body</div></div>\';')
   script.push('    html = html.replace(/\\$body/g, decodeHTML652(annotation.body.html)).replace(/\\$author/g, decodeHTML652(annotation.created_by.name));')
-  script.push('    div0.innerHTML = html;')
+  script.push('    div0.innerHTML = html')
   script.push('    targetBlankLinks145 (); // Change link target to _blank')
+  script.push('    window.setTimeout(checkAnnotationHeight458, 200) // Change link target to _blank')
   script.push('  }')
   script.push('}')
   onload.push('annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML);')
@@ -289,9 +297,9 @@ function combineGeniusResources(song, html, annotations, cb) {
   // Remove cookie consent
   html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
 
-  // Add onload attribute to body
+  // Add onload attribute to body and hide horizontal scroll bar
   let parts = html.split('<body')
-  html = parts[0] + '<body onload="onload7846552()"' + parts.slice(1).join('<body')
+  html = parts[0] + '<body style="overflow-x:hidden;width:100%" onload="onload7846552()"' + parts.slice(1).join('<body')
 
   // Add script code
   headhtml += '\n<script type="text/javascript">\n\n' + script.join('\n') + '\n\nfunction onload7846552() {\n' + onload.join('\n') + '\n}\n\n</script>'
@@ -349,7 +357,6 @@ function getCleanLyricsContainer () {
 }
 
 function hideLyrics () {
-  clearInterval(mainIv)
   if (document.getElementById('lyricscontainer')) {
     document.getElementById('lyricscontainer').parentNode.removeChild(document.getElementById('lyricscontainer'))
     const topContainer = document.querySelector('.Root__top-container')
@@ -388,6 +395,7 @@ function showLyrics (song, searchresultsLengths) {
   hideButton.appendChild(document.createTextNode('Hide'))
   hideButton.addEventListener('click', function hideButtonClick (ev) {
     ev.preventDefault()
+    clearInterval(mainIv)
     hideLyrics()
   })
   bar.appendChild(hideButton)
@@ -596,6 +604,7 @@ function addLyricsButton () {
   b.setAttribute('title', 'Load lyrics from genius.com')
   b.appendChild(document.createTextNode('🅖'))
   b.addEventListener('click', function onShowLyricsButtonClick() {
+   mainIv = window.setInterval(main, 2000)
    addLyrics(true)
   })
   document.body.appendChild(b)
