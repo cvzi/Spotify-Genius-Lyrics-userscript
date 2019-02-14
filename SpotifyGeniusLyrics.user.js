@@ -205,10 +205,9 @@ function loadGeniusAnnotations (song, html, cb) {
   })
 }
 
-function combineGeniusResources (song, html, annotations, cb) {
-  let script = []
-  let onload = []
-  let headhtml = ''
+function myScripts () {
+  const script = []
+  const onload = []
 
   // Define globals
   script.push('var iv458,annotations1234;')
@@ -287,6 +286,16 @@ function combineGeniusResources (song, html, annotations, cb) {
   // Open real page if not in frame
   onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
 
+  return [script, onload]
+}
+
+
+
+function combineGeniusResources (song, html, annotations, cb) {
+  const [script, onload] = myScripts()
+
+  let headhtml = ''
+
   // Make annotations clickable
   const regex = /annotation-fragment="(\d+)"/g
   html = html.replace(regex, 'onclick="showAnnotation1234.call(this, event, $1)"')
@@ -310,8 +319,7 @@ function combineGeniusResources (song, html, annotations, cb) {
   // Add to <head>
   parts = html.split('</head>')
   html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
-
-  cb(html, script, onload)
+  cb(html)
 }
 
 function onResize () {
@@ -447,16 +455,20 @@ function showLyrics (song, searchresultsLengths) {
   iframe.id = 'lyricsiframe'
   container.appendChild(iframe)
   const spinner = '<style>.loadingspinner { pointer-events: none; width: 2.5em; height: 2.5em; border: 0.4em solid transparent; border-color: rgb(255, 255, 100) #181818 #181818 #181818; border-radius: 50%; animation: loadingspin 2s ease infinite;} @keyframes loadingspin { 25% { transform: rotate(90deg) } 50% { transform: rotate(180deg) } 75% { transform: rotate(270deg) } 100% { transform: rotate(360deg) }}</style><div class="loadingspinner"></div>'
-  iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(spinner)
+  if (isFirefox) {
+    iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(spinner)
+  } else {
+    iframe.src = 'https://open.spotify.com/405#html,' + encodeURIComponent(spinner)
+  }
   iframe.style.width = container.clientWidth - 1 + 'px'
   iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
-      combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html, scripts, onload) {
+      combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html) {
         if (isFirefox) {
           iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
         } else {
-          iframe.src = 'https://open.spotify.com/404#data:text/html;charset=utf-8,' + encodeURIComponent(scripts.join('\n') + '\n' + onload.join('\n')) + '___SEP___' + encodeURIComponent(html)
+          iframe.src = 'https://open.spotify.com/404#html:scripts,' + encodeURIComponent(html)
         }
         iframe.style.position = 'fixed'
       })
@@ -663,10 +675,14 @@ function main () {
   }
 }
 
-if (!isFirefox && document.location.href.startsWith('https://open.spotify.com/404#data:text/html;charset=utf-8,')) {
-  let code = decodeURIComponent(document.location.hash.split('#data:text/html;charset=utf-8,')[1]).split('___SEP___')
-  document.write(code[1])
-  window.setTimeout(function () { eval(code[0]) }, 1000)
+if (!isFirefox && document.location.href.startsWith('https://open.spotify.com/404#html:scripts,')) {
+  const [script, onload] = myScripts()
+  document.write(decodeURIComponent(document.location.hash.split('#html:scripts,')[1]))
+  window.setTimeout(function () {
+    eval(script.join('\n') + '\n' + onload.join('\n'))
+  }, 1000)
+} else if (!isFirefox && document.location.href.startsWith('https://open.spotify.com/405#html,')) {
+  document.write(decodeURIComponent(document.location.hash.split('#html,')[1]))
 } else {
   loadCache()
   mainIv = window.setInterval(main, 2000)
