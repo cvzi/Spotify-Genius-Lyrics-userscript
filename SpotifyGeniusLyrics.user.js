@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      3
+// @version      4
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -522,7 +522,7 @@ function listSongs (hits, container, query) {
   })
 }
 
-function addLyrics (force, onlyFirstArtist) {
+function addLyrics (force, beLessSpecific) {
   let songTitle = document.querySelector('.track-info__name.ellipsis-one-line').innerText
   let feat = songTitle.indexOf(' (feat')
   if (feat !== -1) {
@@ -536,8 +536,10 @@ function addLyrics (force, onlyFirstArtist) {
     currentTitle = songTitle
     currentArtists = songArtists
     const firstArtist = songArtistsArr[0]
-    if (onlyFirstArtist) {
+    let simpleTitle = songTitle = songTitle.replace(/\s*-\s*.+?$/, '') // Remove anything following the last dash
+    if (beLessSpecific) {
       songArtists = firstArtist
+      songTitle = simpleTitle
     }
     let hitFromCache = getLyricsSelection(songTitle, songArtists)
     if (!force && hitFromCache) {
@@ -547,8 +549,8 @@ function addLyrics (force, onlyFirstArtist) {
         const hits = r.response.sections[0].hits
         if (hits.length === 0) {
           hideLyrics()
-          if (!onlyFirstArtist && firstArtist !== songArtists) {
-            // Try again with only the first artist
+          if (!beLessSpecific && (firstArtist !== songArtists || simpleTitle !== songTitle)) {
+            // Try again with only the first artist or the simple title
             addLyrics(!!force, true)
           } else if (force) {
             showSearchField()
