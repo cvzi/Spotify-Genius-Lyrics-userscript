@@ -211,7 +211,7 @@ function myScripts () {
 
   // Define globals
   script.push('var iv458,annotations1234;')
-
+  script.push('function removeIfExists (e) { if(e && e.remove) { e.remove() }}')
   script.push('function decodeHTML652 (s) { return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">") }')
 
   // Hide cookies box function
@@ -219,7 +219,7 @@ function myScripts () {
   // onload.push('iv458 = window.setInterval(hideCookieBox458, 500)')
 
   // Hide footer
-  script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){f[0].remove();f[1].remove()}}')
+  script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){removeIfExists(f[0]);removeIfExists(f[1])}}')
   script.push('function hideSecondaryFooter895 () {if(document.querySelector(".footer.footer--secondary")){document.querySelector(".footer.footer--secondary").parentNode.removeChild(document.querySelector(".footer.footer--secondary"))}}')
 
   onload.push('hideFooter895()')
@@ -227,8 +227,8 @@ function myScripts () {
 
   // Hide other stuff
   script.push('function hideStuff235 () {')
-  script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); grayBox.remove()')
-  script.push('  document.querySelector(".header .header-expand_nav_menu").remove()')
+  script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); removeIfExists(grayBox)')
+  script.push('  removeIfExists(document.querySelector(".header .header-expand_nav_menu"))')
   script.push('}')
   onload.push('hideStuff235()')
 
