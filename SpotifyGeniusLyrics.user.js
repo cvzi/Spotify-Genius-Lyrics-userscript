@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      4
+// @version      5
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -403,6 +403,7 @@ function showLyrics (song, searchresultsLengths) {
   hideButton.appendChild(document.createTextNode('Hide'))
   hideButton.addEventListener('click', function hideButtonClick (ev) {
     ev.preventDefault()
+    optionAutoShow = false  // Temporarily disable showing lyrics automatically on song change
     clearInterval(mainIv)
     hideLyrics()
   })
@@ -616,6 +617,7 @@ function addLyricsButton () {
   b.setAttribute('title', 'Load lyrics from genius.com')
   b.appendChild(document.createTextNode('🅖'))
   b.addEventListener('click', function onShowLyricsButtonClick () {
+    optionAutoShow = true  // Temporarily enable showing lyrics automatically on song change
     mainIv = window.setInterval(main, 2000)
     addLyrics(true)
   })
