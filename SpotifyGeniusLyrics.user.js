@@ -466,7 +466,7 @@ const themes = {
 
       return [script, onload]
     },
-    'combine': function themeSpotifyXombineGeniusResources (script, onload, song, html, annotations, cb) {
+    'combine': function themeSpotifyCombineGeniusResources (script, onload, song, html, annotations, cb) {
       let headhtml = ''
 
       // Make annotations clickable
@@ -709,7 +709,7 @@ function listSongs (hits, container, query) {
   // Back to search button
   const backToSearchButton = document.createElement('a')
   backToSearchButton.href = '#'
-  backToSearchButton.appendChild(document.createTextNode('Search again'))
+  backToSearchButton.appendChild(document.createTextNode('Back to search'))
   backToSearchButton.addEventListener('click', function backToSearchButtonClick (ev) {
     ev.preventDefault()
     if (query) {
@@ -721,10 +721,26 @@ function listSongs (hits, container, query) {
     }
   })
 
+  const separator = document.createElement('span')
+  separator.setAttribute('class', 'second-line-separator')
+  separator.setAttribute('style', 'padding:0px 3px')
+  separator.appendChild(document.createTextNode('•'))
+
+  // Hide button
+  const hideButton = document.createElement('a')
+  hideButton.href = '#'
+  hideButton.appendChild(document.createTextNode('Hide'))
+  hideButton.addEventListener('click', function hideButtonClick (ev) {
+    ev.preventDefault()
+    hideLyrics()
+  })
+
   // List search results
   const trackhtml = '<div class="tracklist-col position-outer"><div class="tracklist-play-pause tracklist-top-align"><span style="color:silver;font-size:2.0em">🅖</span></div><div class="position tracklist-top-align"><span style="font-size:1.5em">📄</span></div></div><div class="tracklist-col name"><div class="track-name-wrapper tracklist-top-align"><div class="tracklist-name ellipsis-one-line" dir="auto">$title</div><div class="second-line"><span class="TrackListRow__explicit-label">$lyrics_state</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__artist-name-link" href="#">$artist</a></span><span class="second-line-separator" aria-label="in album">•</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__album-name-link" href="#">👁 <span style="font-size:0.8em">$stats.pageviews</span></a></span></div></div></div>'
   container.innerHTML = '<section class="tracklist-container"><ol class="tracklist" style="width:99%"></ol></section>'
 
+  container.insertBefore(hideButton, container.firstChild)
+  container.insertBefore(separator, container.firstChild)
   container.insertBefore(backToSearchButton, container.firstChild)
 
   const ol = container.querySelector('ol.tracklist')
@@ -875,7 +891,7 @@ function config () {
   checkAutoShow.addEventListener('click', onAutoShow)
   checkAutoShow.addEventListener('change', onAutoShow)
 
-  label = div.appendChild(document.createElement('label'))
+  let label = div.appendChild(document.createElement('label'))
   label.setAttribute('for', 'checkAutoShow748')
   label.appendChild(document.createTextNode(' Automatically show lyrics when new song starts'))
 
