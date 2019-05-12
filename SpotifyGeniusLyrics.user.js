@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      7
+// @version      8
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -679,7 +679,7 @@ function showLyrics (song, searchresultsLengths) {
     iframe.src = emptySpotifyURL + '?405#html,' + encodeURIComponent(spinner)
   }
   iframe.style.width = container.clientWidth - 1 + 'px'
-  iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
+  iframe.style.height = (document.querySelector('.Root__top-container').clientHeight - bar.clientHeight) + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     if (annotationsEnabled) {
       loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
@@ -870,6 +870,15 @@ function addLyricsButton () {
 
 function config () {
   loadCache()
+
+  // Blur background
+  if (document.querySelector('.Root__top-container')) {
+     document.querySelector('.Root__top-container').style.filter = 'blur(4px)';
+  }
+  if (document.getElementById('lyricscontainer')) {
+     document.getElementById('lyricscontainer').style.filter = 'blur(1px)';
+  }
+
   const win = document.createElement('div')
   win.setAttribute('id', 'myconfigwin39457845')
   win.setAttribute('style', 'position:absolute; top: 10px; right:10px; padding:15px; background:white; border-radius:10%; border:2px solid black; color:black; z-index:10')
@@ -952,6 +961,13 @@ function config () {
   closeButton.style.color = 'black'
   closeButton.addEventListener('click', function onCloseButtonClick () {
     win.parentNode.removeChild(win)
+    // Un-blur background
+    if(document.querySelector('.Root__top-container')) {
+       document.querySelector('.Root__top-container').style.filter = '';
+    }
+    if (document.getElementById('lyricscontainer')) {
+       document.getElementById('lyricscontainer').style.filter = '';
+    }
   })
 
   const bytes = metricPrefix(JSON.stringify(selectionCache).length + JSON.stringify(requestCache).length, 2, 1024) + 'Bytes'
