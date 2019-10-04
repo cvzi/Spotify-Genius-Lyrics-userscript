@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      8
+// @version      9
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -543,7 +543,7 @@ function onResize () {
   let iframe = document.getElementById('lyricsiframe')
   if (iframe) {
     iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
-    iframe.style.height = document.querySelector('.Root__nav-bar .navBar').clientHeight + 'px'
+    iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
   }
 }
 function initResize () {
@@ -600,6 +600,7 @@ function showLyrics (song, searchresultsLengths) {
   separator.appendChild(document.createTextNode('•'))
 
   const bar = document.createElement('div')
+  bar.setAttribute('class', 'lyricsnavbar')
   bar.style.fontSize = '0.7em'
   container.appendChild(bar)
 
@@ -679,7 +680,7 @@ function showLyrics (song, searchresultsLengths) {
     iframe.src = emptySpotifyURL + '?405#html,' + encodeURIComponent(spinner)
   }
   iframe.style.width = container.clientWidth - 1 + 'px'
-  iframe.style.height = (document.querySelector('.Root__top-container').clientHeight - bar.clientHeight) + 'px'
+  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight) + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     if (annotationsEnabled) {
       loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
