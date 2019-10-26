@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      9
+// @version      10
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -760,7 +760,7 @@ function listSongs (hits, container, query) {
     let li = document.createElement('li')
     li.setAttribute('class', 'tracklist-row')
     li.setAttribute('role', 'button')
-    li.innerHTML = trackhtml.replace(/\$title/g, hit.result.title_with_featured).replace(/\$artist/g, hit.result.primary_artist.name).replace(/\$lyrics_state/g, hit.result.lyrics_state).replace(/\$stats\.pageviews/g, metricPrefix(hit.result.stats.pageviews, 1))
+    li.innerHTML = trackhtml.replace(/\$title/g, hit.result.title_with_featured).replace(/\$artist/g, hit.result.primary_artist.name).replace(/\$lyrics_state/g, hit.result.lyrics_state).replace(/\$stats\.pageviews/g, "pageviews" in hit.result.stats ? metricPrefix(hit.result.stats.pageviews, 1) : ' - ')
     li.dataset.hit = JSON.stringify(hit)
 
     li.addEventListener('click', onclick)
