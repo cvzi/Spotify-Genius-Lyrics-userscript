@@ -679,8 +679,8 @@ function showLyrics (song, searchresultsLengths) {
   } else {
     iframe.src = emptySpotifyURL + '?405#html,' + encodeURIComponent(spinner)
   }
-  iframe.style.width = container.clientWidth - 1 + 'px'
-  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight) + 'px'
+  iframe.style.width = container.clientWidth - 5 + 'px'
+  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight - 10) + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     if (annotationsEnabled) {
       loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
