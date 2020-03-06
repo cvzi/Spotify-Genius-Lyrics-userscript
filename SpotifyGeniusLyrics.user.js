@@ -4,12 +4,13 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      10
+// @version      10.0.2
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
 // @grant        GM.getValue
 // @connect      genius.com
+// @namespace https://greasyfork.org/users/20068
 // ==/UserScript==
 
 const isFirefox = typeof InstallTrigger !== 'undefined'
@@ -521,6 +522,8 @@ const themes = {
       headhtml += '\n  h1.header_with_cover_art-primary_info-title a {color: rgb(255,255,255,0.9); font-size:1.1em}'
       headhtml += '\n  h2 a,h2 a.header_with_cover_art-primary_info-primary_artist {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300}'
       headhtml += '\n  .header_with_cover_art-primary_info {display:inline-block;background-color: hsla(0,0%,0%,.2);color: #000;border-radius: 2px;padding:7px 10px 0px 5px;}'
+      headhtml += '\n  ::-webkit-scrollbar {width: 16px;}'
+      headhtml += '\n  ::-webkit-scrollbar-thumb {background-color: hsla(0,0%,100%,.3);}'
       headhtml += '\n</style>\n'
 
       // Add to <head>
@@ -679,8 +682,8 @@ function showLyrics (song, searchresultsLengths) {
   } else {
     iframe.src = emptySpotifyURL + '?405#html,' + encodeURIComponent(spinner)
   }
-  iframe.style.width = container.clientWidth - 5 + 'px'
-  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight - 10) + 'px'
+  iframe.style.width = container.clientWidth - 1 + 'px'
+  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight) + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     if (annotationsEnabled) {
       loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
@@ -769,14 +772,14 @@ function listSongs (hits, container, query) {
 }
 
 function addLyrics (force, beLessSpecific) {
-  let songTitle = document.querySelector('.track-info__name.ellipsis-one-line').innerText
+  let songTitle = document.querySelector('a[data-testid="nowplaying-track-link"]').innerText
   let feat = songTitle.indexOf(' (feat')
   if (feat !== -1) {
     songTitle = songTitle.substring(0, feat).trim()
   }
   const musicIsPlaying = document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause') !== -1
   const songArtistsArr = []
-  document.querySelector('.track-info__artists.ellipsis-one-line').querySelectorAll('a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  document.querySelectorAll('.Root__now-playing-bar .now-playing .ellipsis-one-line a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
   let songArtists = songArtistsArr.join(' ')
   if (force || (!document.hidden && musicIsPlaying && (currentTitle !== songTitle || currentArtists !== songArtists))) {
     currentTitle = songTitle
