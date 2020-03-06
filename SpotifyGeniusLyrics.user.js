@@ -4,12 +4,13 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      10
+// @version      10.0.1
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
 // @grant        GM.getValue
 // @connect      genius.com
+// @namespace https://greasyfork.org/users/20068
 // ==/UserScript==
 
 const isFirefox = typeof InstallTrigger !== 'undefined'
@@ -679,8 +680,8 @@ function showLyrics (song, searchresultsLengths) {
   } else {
     iframe.src = emptySpotifyURL + '?405#html,' + encodeURIComponent(spinner)
   }
-  iframe.style.width = container.clientWidth - 5 + 'px'
-  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight - 10) + 'px'
+  iframe.style.width = container.clientWidth - 1 + 'px'
+  iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight) + 'px'
   loadGeniusSong(song, function loadGeniusSongCb (html) {
     if (annotationsEnabled) {
       loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
@@ -769,14 +770,14 @@ function listSongs (hits, container, query) {
 }
 
 function addLyrics (force, beLessSpecific) {
-  let songTitle = document.querySelector('.track-info__name.ellipsis-one-line').innerText
+  let songTitle = document.querySelector('a[data-testid="nowplaying-track-link"]').innerText
   let feat = songTitle.indexOf(' (feat')
   if (feat !== -1) {
     songTitle = songTitle.substring(0, feat).trim()
   }
   const musicIsPlaying = document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause') !== -1
   const songArtistsArr = []
-  document.querySelector('.track-info__artists.ellipsis-one-line').querySelectorAll('a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  document.querySelector('div._44843c8513baccb36b3fa171573a128f-scss').querySelectorAll('a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
   let songArtists = songArtistsArr.join(' ')
   if (force || (!document.hidden && musicIsPlaying && (currentTitle !== songTitle || currentArtists !== songArtists))) {
     currentTitle = songTitle
