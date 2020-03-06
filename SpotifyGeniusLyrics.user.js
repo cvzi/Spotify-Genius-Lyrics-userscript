@@ -4,7 +4,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      10.0.1
+// @version      10.0.2
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -522,6 +522,8 @@ const themes = {
       headhtml += '\n  h1.header_with_cover_art-primary_info-title a {color: rgb(255,255,255,0.9); font-size:1.1em}'
       headhtml += '\n  h2 a,h2 a.header_with_cover_art-primary_info-primary_artist {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300}'
       headhtml += '\n  .header_with_cover_art-primary_info {display:inline-block;background-color: hsla(0,0%,0%,.2);color: #000;border-radius: 2px;padding:7px 10px 0px 5px;}'
+      headhtml += '\n  ::-webkit-scrollbar {width: 16px;}'
+      headhtml += '\n  ::-webkit-scrollbar-thumb {background-color: hsla(0,0%,100%,.3);}'
       headhtml += '\n</style>\n'
 
       // Add to <head>
