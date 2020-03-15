@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         Spotify Genius Lyrics
 // @description  Show lyrics from genius.com on the Spotify web player
+// @namespace    https://greasyfork.org/users/20068
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      10.0.2
+// @version      10.0.3
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
 // @grant        GM.getValue
 // @connect      genius.com
-// @namespace https://greasyfork.org/users/20068
 // ==/UserScript==
 
 const isFirefox = typeof InstallTrigger !== 'undefined'
@@ -605,13 +605,13 @@ function showLyrics (song, searchresultsLengths) {
   const bar = document.createElement('div')
   bar.setAttribute('class', 'lyricsnavbar')
   bar.style.fontSize = '0.7em'
+  bar.style.userSelect = 'none'
   container.appendChild(bar)
 
   // Resize button
   const resizeButton = document.createElement('span')
   resizeButton.style.fontSize = '1.8em'
   resizeButton.style.cursor = 'ew-resize'
-  resizeButton.style.color = 'white'
   resizeButton.appendChild(document.createTextNode('⇹'))
   resizeButton.addEventListener('mousedown', initResize)
   bar.appendChild(resizeButton)
@@ -676,7 +676,7 @@ function showLyrics (song, searchresultsLengths) {
   const iframe = document.createElement('iframe')
   iframe.id = 'lyricsiframe'
   container.appendChild(iframe)
-  const spinner = '<style>.loadingspinner { pointer-events: none; width: 2.5em; height: 2.5em; border: 0.4em solid transparent; border-color: rgb(255, 255, 100) #181818 #181818 #181818; border-radius: 50%; animation: loadingspin 2s ease infinite;} @keyframes loadingspin { 25% { transform: rotate(90deg) } 50% { transform: rotate(180deg) } 75% { transform: rotate(270deg) } 100% { transform: rotate(360deg) }}</style><div class="loadingspinner"></div>'
+  const spinner = '<style>.loadingspinner { margin: 30% auto;pointer-events: none; width: 2.5em; height: 2.5em; border: 0.4em solid transparent; border-color: rgb(255, 255, 100) #181818 #181818 #181818; border-radius: 50%; animation: loadingspin 2s ease infinite;} @keyframes loadingspin { 25% { transform: rotate(90deg) } 50% { transform: rotate(180deg) } 75% { transform: rotate(270deg) } 100% { transform: rotate(360deg) }}</style><div class="loadingspinner"></div>'
   if (isFirefox) {
     iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(spinner)
   } else {
@@ -985,6 +985,19 @@ function config () {
   })
 }
 
+function addCss() {
+  document.head.appendChild(document.createElement('style')).innerHTML = `
+  .lyricsnavbar span,.lyricsnavbar a:link,.lyricsnavbar a:visited {
+    color: rgb(179, 179, 179);
+    text-decoration:none;
+    transition:color 400ms;
+  }
+  .lyricsnavbar a:hover,.lyricsnavbar span:hover {
+    color:white;
+    text-decoration:none;
+  }`
+}
+
 function main () {
   if (document.querySelector('.now-playing')) {
     if (optionAutoShow) {
@@ -1019,6 +1032,7 @@ function main () {
       document.write(decodeURIComponent(document.location.hash.split('#html,')[1]))
     } else {
       loadCache()
+      addCss()
       mainIv = window.setInterval(main, 2000)
       window.addEventListener('resize', onResize)
     }
