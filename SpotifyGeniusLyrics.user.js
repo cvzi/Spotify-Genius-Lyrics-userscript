@@ -13,6 +13,8 @@
 // @connect      genius.com
 // ==/UserScript==
 
+/* global GM */
+
 const scriptName = 'SpotifyGeniusScript'
 const emptySpotifyURL = 'https://open.spotify.com/robots.txt'
 var requestCache = {}
@@ -41,9 +43,9 @@ function metricPrefix (n, decimals, k) {
     return String(n)
   }
   k = k || 1000
-  let dm = decimals <= 0 ? 0 : decimals || 2
-  let sizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
-  let i = Math.floor(Math.log(n) / Math.log(k))
+  const dm = decimals <= 0 ? 0 : decimals || 2
+  const sizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
+  const i = Math.floor(Math.log(n) / Math.log(k))
   return parseFloat((n / Math.pow(k, i)).toFixed(dm)) + sizes[i]
 }
 
@@ -69,7 +71,7 @@ function loadCache () {
     */
     const now = (new Date()).getTime()
     const exp = 2 * 60 * 60 * 1000
-    for (let prop in requestCache) {
+    for (const prop in requestCache) {
       // Delete cached values, that are older than 2 hours
       const time = requestCache[prop].split('\n')[0]
       if ((now - (new Date(time)).getTime()) > exp) {
@@ -86,9 +88,9 @@ function request (obj) {
   }
 
   let headers = {
-    'Referer': obj.url,
+    Referer: obj.url,
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'Host': getHostname(obj.url),
+    Host: getHostname(obj.url),
     'User-Agent': navigator.userAgent
   }
   if (obj.headers) {
@@ -148,7 +150,7 @@ function geniusSearch (query, cb) {
       'X-Requested-With': 'XMLHttpRequest'
     },
     error: function geniusSearchOnError (response) {
-      alert('Error geniusSearch(' + JSON.stringify(query) + ', cb):\n' + response)
+      window.alert('Error geniusSearch(' + JSON.stringify(query) + ', cb):\n' + response)
     },
     load: function geniusSearchOnLoad (response) {
       cb(JSON.parse(response.responseText))
@@ -160,7 +162,7 @@ function loadGeniusSong (song, cb) {
   request({
     url: song.result.url,
     error: function loadGeniusSongOnError (response) {
-      alert('Error loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
+      window.alert('Error loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
     },
     load: function loadGeniusSongOnLoad (response) {
       cb(response.responseText)
@@ -187,7 +189,7 @@ function loadGeniusAnnotations (song, html, cb) {
       'X-Requested-With': 'XMLHttpRequest'
     },
     error: function loadGeniusAnnotationsOnError (response) {
-      alert('Error loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
+      window.alert('Error loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
     },
     load: function loadGeniusAnnotationsOnLoad (response) {
       const r = JSON.parse(response.responseText).response
@@ -199,7 +201,7 @@ function loadGeniusAnnotations (song, html, cb) {
           })
         })
       } else {
-        for (let refId in r.referents) {
+        for (const refId in r.referents) {
           const referent = r.referents[refId]
           referent.annotations.forEach(function forEachAnnotation (annotation) {
             annotations[annotation.id] = annotation
@@ -212,9 +214,9 @@ function loadGeniusAnnotations (song, html, cb) {
 }
 
 const themes = {
-  'genius': {
-    'name': 'Genius (Default)',
-    'scripts': function themeGeniusScripts () {
+  genius: {
+    name: 'Genius (Default)',
+    scripts: function themeGeniusScripts () {
       const script = []
       const onload = []
 
@@ -316,7 +318,7 @@ const themes = {
 
       return [script, onload]
     },
-    'combine': function themeGeniusCombineGeniusResources (script, onload, song, html, annotations, cb) {
+    combine: function themeGeniusCombineGeniusResources (script, onload, song, html, annotations, cb) {
       let headhtml = ''
 
       // Make annotations clickable
@@ -348,9 +350,9 @@ const themes = {
       return cb(html)
     }
   },
-  'spotify': {
-    'name': 'Spotify',
-    'scripts': function themeSpotifyScripts () {
+  spotify: {
+    name: 'Spotify',
+    scripts: function themeSpotifyScripts () {
       const script = []
       const onload = []
 
@@ -471,7 +473,7 @@ const themes = {
 
       return [script, onload]
     },
-    'combine': function themeSpotifyXombineGeniusResources (script, onload, song, html, annotations, cb) {
+    combine: function themeSpotifyXombineGeniusResources (script, onload, song, html, annotations, cb) {
       let headhtml = ''
 
       // Make annotations clickable
@@ -482,10 +484,10 @@ const themes = {
       html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
 
       // Extract lyrics
-      let lyrics = '<div class="mylyrics song_body-lyrics">' + html.split('class="lyrics">')[1].split('</div>')[0] + '</div>'
+      const lyrics = '<div class="mylyrics song_body-lyrics">' + html.split('class="lyrics">')[1].split('</div>')[0] + '</div>'
 
       // Extract title
-      let title = '<div class="header_with_cover_art-primary_info">' + html.split('class="header_with_cover_art-primary_info">')[1].split('</div>').slice(0, 3).join('</div>') + '</div></div>'
+      const title = '<div class="header_with_cover_art-primary_info">' + html.split('class="header_with_cover_art-primary_info">')[1].split('</div>').slice(0, 3).join('</div>') + '</div></div>'
 
       // Remove body content, add onload attribute to body, hide horizontal scroll bar, add lyrics
       let parts = html.split('<body', 2)
@@ -544,7 +546,7 @@ function combineGeniusResources (song, html, annotations, cb) {
 }
 
 function onResize () {
-  let iframe = document.getElementById('lyricsiframe')
+  const iframe = document.getElementById('lyricsiframe')
   if (iframe) {
     iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
     iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
@@ -629,7 +631,7 @@ function showLyrics (song, searchresultsLengths) {
   hideButton.appendChild(document.createTextNode('Hide'))
   hideButton.addEventListener('click', function hideButtonClick (ev) {
     ev.preventDefault()
-    optionAutoShow = false  // Temporarily disable showing lyrics automatically on song change
+    optionAutoShow = false // Temporarily disable showing lyrics automatically on song change
     clearInterval(mainIv)
     hideLyrics()
   })
@@ -705,12 +707,12 @@ function showLyrics (song, searchresultsLengths) {
           spinner.innerHTML = '2'
           spinner.title = 'Loading page...'
           iframe.src = emptySpotifyURL + '#html:post'
-          let iv = window.setInterval(function() {
-            iframe.contentWindow.postMessage({ 'iAm': scriptName, 'type': 'writehtml', 'html' : html}, '*');
+          const iv = window.setInterval(function () {
+            iframe.contentWindow.postMessage({ iAm: scriptName, type: 'writehtml', html: html }, '*')
             spinner.innerHTML = '1'
             spinner.title = 'Rendering...'
           }, 1000)
-          const clear = function() {
+          const clear = function () {
             window.clearInterval(iv)
             spinner.remove()
           }
@@ -726,12 +728,12 @@ function showLyrics (song, searchresultsLengths) {
         spinner.innerHTML = '2'
         spinner.title = 'Loading page...'
         iframe.src = emptySpotifyURL + '#html:post'
-        let iv = window.setInterval(function() {
-          iframe.contentWindow.postMessage({ 'iAm': scriptName, 'type': 'writehtml', 'html' : html}, '*');
+        const iv = window.setInterval(function () {
+          iframe.contentWindow.postMessage({ iAm: scriptName, type: 'writehtml', html: html }, '*')
           spinner.innerHTML = '1'
           spinner.title = 'Rendering...'
         }, 1000)
-        const clear = function() {
+        const clear = function () {
           window.clearInterval(iv)
           spinner.remove()
         }
@@ -794,10 +796,10 @@ function listSongs (hits, container, query) {
     showLyrics(JSON.parse(this.dataset.hit), searchresultsLengths)
   }
   hits.forEach(function forEachHit (hit) {
-    let li = document.createElement('li')
+    const li = document.createElement('li')
     li.setAttribute('class', 'tracklist-row')
     li.setAttribute('role', 'button')
-    li.innerHTML = trackhtml.replace(/\$title/g, hit.result.title_with_featured).replace(/\$artist/g, hit.result.primary_artist.name).replace(/\$lyrics_state/g, hit.result.lyrics_state).replace(/\$stats\.pageviews/g, "pageviews" in hit.result.stats ? metricPrefix(hit.result.stats.pageviews, 1) : ' - ')
+    li.innerHTML = trackhtml.replace(/\$title/g, hit.result.title_with_featured).replace(/\$artist/g, hit.result.primary_artist.name).replace(/\$lyrics_state/g, hit.result.lyrics_state).replace(/\$stats\.pageviews/g, 'pageviews' in hit.result.stats ? metricPrefix(hit.result.stats.pageviews, 1) : ' - ')
     li.dataset.hit = JSON.stringify(hit)
 
     li.addEventListener('click', onclick)
@@ -807,7 +809,7 @@ function listSongs (hits, container, query) {
 
 function addLyrics (force, beLessSpecific) {
   let songTitle = document.querySelector('a[data-testid="nowplaying-track-link"]').innerText
-  let feat = songTitle.indexOf(' (feat')
+  const feat = songTitle.indexOf(' (feat')
   if (feat !== -1) {
     songTitle = songTitle.substring(0, feat).trim()
   }
@@ -819,12 +821,12 @@ function addLyrics (force, beLessSpecific) {
     currentTitle = songTitle
     currentArtists = songArtists
     const firstArtist = songArtistsArr[0]
-    let simpleTitle = songTitle = songTitle.replace(/\s*-\s*.+?$/, '') // Remove anything following the last dash
+    const simpleTitle = songTitle = songTitle.replace(/\s*-\s*.+?$/, '') // Remove anything following the last dash
     if (beLessSpecific) {
       songArtists = firstArtist
       songTitle = simpleTitle
     }
-    let hitFromCache = getLyricsSelection(songTitle, songArtists)
+    const hitFromCache = getLyricsSelection(songTitle, songArtists)
     if (!force && hitFromCache) {
       showLyrics(hitFromCache, true)
     } else {
@@ -852,7 +854,7 @@ function searchByQuery (query, container) {
   geniusSearch(query, function geniusSearchCb (r) {
     const hits = r.response.sections[0].hits
     if (hits.length === 0) {
-      alert('No search results')
+      window.alert('No search results')
     } else {
       listSongs(hits, container, query)
     }
@@ -906,7 +908,7 @@ function addLyricsButton () {
   b.setAttribute('title', 'Load lyrics from genius.com')
   b.appendChild(document.createTextNode('🅖'))
   b.addEventListener('click', function onShowLyricsButtonClick () {
-    optionAutoShow = true  // Temporarily enable showing lyrics automatically on song change
+    optionAutoShow = true // Temporarily enable showing lyrics automatically on song change
     mainIv = window.setInterval(main, 2000)
     addLyrics(true)
   })
@@ -918,17 +920,16 @@ function config () {
 
   // Blur background
   if (document.querySelector('.Root__top-container')) {
-     document.querySelector('.Root__top-container').style.filter = 'blur(4px)';
+    document.querySelector('.Root__top-container').style.filter = 'blur(4px)'
   }
   if (document.getElementById('lyricscontainer')) {
-     document.getElementById('lyricscontainer').style.filter = 'blur(1px)';
+    document.getElementById('lyricscontainer').style.filter = 'blur(1px)'
   }
 
   const win = document.createElement('div')
   win.setAttribute('id', 'myconfigwin39457845')
   win.setAttribute('style', 'position:absolute; top: 10px; right:10px; padding:15px; background:white; border-radius:10%; border:2px solid black; color:black; z-index:10')
-  let style = win.appendChild(document.createElement('style'))
-  style.innerHTML += '#myconfigwin39457845 div {margin:2px 0; padding:5px;border-radius: 5px;background-color: #EFEFEF;}'
+  win.appendChild(document.createElement('style')).innerHTML = '#myconfigwin39457845 div {margin:2px 0; padding:5px;border-radius: 5px;background-color: #EFEFEF;}'
   document.body.appendChild(win)
   const h1 = document.createElement('h1')
   win.appendChild(h1).appendChild(document.createTextNode('Options'))
@@ -960,7 +961,7 @@ function config () {
   div = win.appendChild(document.createElement('div'))
   div.appendChild(document.createTextNode('Theme: '))
   const selectTheme = div.appendChild(document.createElement('select'))
-  for (let key in themes) {
+  for (const key in themes) {
     const option = selectTheme.appendChild(document.createElement('option'))
     option.value = key
     if (themeKey === key) {
@@ -1007,11 +1008,11 @@ function config () {
   closeButton.addEventListener('click', function onCloseButtonClick () {
     win.parentNode.removeChild(win)
     // Un-blur background
-    if(document.querySelector('.Root__top-container')) {
-       document.querySelector('.Root__top-container').style.filter = '';
+    if (document.querySelector('.Root__top-container')) {
+      document.querySelector('.Root__top-container').style.filter = ''
     }
     if (document.getElementById('lyricscontainer')) {
-       document.getElementById('lyricscontainer').style.filter = '';
+      document.getElementById('lyricscontainer').style.filter = ''
     }
   })
 
@@ -1031,11 +1032,11 @@ function addOneMessageListener (type, cb) {
 }
 
 function listenToMessages () {
-  window.addEventListener('message', function(e){
-    if(!onMessage || typeof e.data != 'object' || ! ('iAm' in e.data) || e.data.iAm != scriptName) {
-       return
+  window.addEventListener('message', function (e) {
+    if (!onMessage || typeof e.data !== 'object' || !('iAm' in e.data) || e.data.iAm !== scriptName) {
+      return
     }
-    for(let i = 0; i < onMessage.length; i++) {
+    for (let i = 0; i < onMessage.length; i++) {
       if (onMessage[i][0] === e.data.type) {
         onMessage[i][1](e)
         onMessage.splice(i, 1)
@@ -1045,7 +1046,7 @@ function listenToMessages () {
   })
 }
 
-function addCss() {
+function addCss () {
   document.head.appendChild(document.createElement('style')).innerHTML = `
   .loadingspinner {
     color:rgb(255, 255, 100);
@@ -1097,7 +1098,7 @@ function main () {
     GM.getValue('theme', themeKey),
     GM.getValue('annotationsenabled', annotationsEnabled)
   ]).then(function (values) {
-    if (themes.hasOwnProperty(values[0])) {
+    if (Object.prototype.hasOwnProperty.call(themes, values[0])) {
       themeKey = values[0]
     } else {
       console.log('Invalid value for theme key: GM.getValue("theme") = ' + values[0])
@@ -1108,9 +1109,9 @@ function main () {
 
     if (document.location.href.startsWith(emptySpotifyURL + '#html:post')) {
       let received = false
-      window.addEventListener('message', function(e){
-        if(received || typeof e.data != 'object' || ! ('iAm' in e.data) || e.data.iAm != scriptName || e.data.type !== 'writehtml') {
-           return
+      window.addEventListener('message', function (e) {
+        if (received || typeof e.data !== 'object' || !('iAm' in e.data) || e.data.iAm !== scriptName || e.data.type !== 'writehtml') {
+          return
         }
         received = true
         document.write(e.data.html)
@@ -1118,7 +1119,7 @@ function main () {
         window.setTimeout(function () {
           eval(script.join('\n') + '\n' + onload.join('\n'))
         }, 1000)
-        e.source.postMessage({ 'iAm': scriptName, 'type': 'htmlwritten'}, '*');
+        e.source.postMessage({ iAm: scriptName, type: 'htmlwritten' }, '*')
       })
     } else if (document.location.href.startsWith(emptySpotifyURL + '?405#html,')) {
       document.write(decodeURIComponent(document.location.hash.split('#html,')[1]))
