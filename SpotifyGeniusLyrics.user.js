@@ -81,6 +81,13 @@ function loadCache () {
   })
 }
 
+function invalidateRequestCache (obj) {
+  const cachekey = JSON.stringify(obj)
+  if (cachekey in requestCache) {
+    delete requestCache[cachekey]
+  }
+}
+
 function request (obj) {
   const cachekey = JSON.stringify(obj)
   if (cachekey in requestCache) {
@@ -144,25 +151,36 @@ function getLyricsSelection (title, artists) {
 }
 
 function geniusSearch (query, cb) {
-  request({
+  const requestObj = {
     url: 'https://genius.com/api/search/song?page=1&q=' + encodeURIComponent(query),
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     },
     error: function geniusSearchOnError (response) {
-      window.alert('Error geniusSearch(' + JSON.stringify(query) + ', cb):\n' + response)
+      window.alert(scriptName + '\n\nError geniusSearch(' + JSON.stringify(query) + ', ' + ('name' in cb ? cb.name : 'cb') + '):\n' + response)
+      invalidateRequestCache(requestObj)
     },
     load: function geniusSearchOnLoad (response) {
-      cb(JSON.parse(response.responseText))
+      let jsonData = null
+      try {
+        jsonData = JSON.parse(response.responseText)
+      } catch(e) {
+        window.alert(scriptName + '\n\n' + e +' in geniusSearch(' + JSON.stringify(query) + ', ' + ('name' in cb ? cb.name : 'cb') + '):\n\n' + response.responseText)
+        invalidateRequestCache(requestObj)
+      }
+      if(jsonData !== null) {
+        cb(jsonData)
+      }
     }
-  })
+  }
+  request(requestObj)
 }
 
 function loadGeniusSong (song, cb) {
   request({
     url: song.result.url,
     error: function loadGeniusSongOnError (response) {
-      window.alert('Error loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
+      window.alert(scriptName + '\n\nError loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
     },
     load: function loadGeniusSongOnLoad (response) {
       cb(response.responseText)
@@ -189,7 +207,7 @@ function loadGeniusAnnotations (song, html, cb) {
       'X-Requested-With': 'XMLHttpRequest'
     },
     error: function loadGeniusAnnotationsOnError (response) {
-      window.alert('Error loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
+      window.alert(scriptName + '\n\nError loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
     },
     load: function loadGeniusAnnotationsOnLoad (response) {
       const r = JSON.parse(response.responseText).response
@@ -854,7 +872,7 @@ function searchByQuery (query, container) {
   geniusSearch(query, function geniusSearchCb (r) {
     const hits = r.response.sections[0].hits
     if (hits.length === 0) {
-      window.alert('No search results')
+      window.alert(scriptName + '\n\nNo search results')
     } else {
       listSongs(hits, container, query)
     }
