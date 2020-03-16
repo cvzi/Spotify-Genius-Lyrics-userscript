@@ -1117,7 +1117,7 @@ function main () {
         document.write(e.data.html)
         const [script, onload] = theme.scripts()
         window.setTimeout(function () {
-          eval(script.join('\n') + '\n' + onload.join('\n'))
+          eval(script.join('\n') + '\n' + onload.join('\n')) // eslint-disable-line no-eval
         }, 1000)
         e.source.postMessage({ iAm: scriptName, type: 'htmlwritten' }, '*')
       })
