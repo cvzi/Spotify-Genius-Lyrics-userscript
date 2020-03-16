@@ -164,11 +164,11 @@ function geniusSearch (query, cb) {
       let jsonData = null
       try {
         jsonData = JSON.parse(response.responseText)
-      } catch(e) {
-        window.alert(scriptName + '\n\n' + e +' in geniusSearch(' + JSON.stringify(query) + ', ' + ('name' in cb ? cb.name : 'cb') + '):\n\n' + response.responseText)
+      } catch (e) {
+        window.alert(scriptName + '\n\n' + e + ' in geniusSearch(' + JSON.stringify(query) + ', ' + ('name' in cb ? cb.name : 'cb') + '):\n\n' + response.responseText)
         invalidateRequestCache(requestObj)
       }
-      if(jsonData !== null) {
+      if (jsonData !== null) {
         cb(jsonData)
       }
     }
