@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      11
+// @version      11.1
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -13,7 +13,7 @@
 // @connect      genius.com
 // ==/UserScript==
 
-/* global GM */
+/* global GM, DOMParser */
 
 const scriptName = 'SpotifyGeniusScript'
 const emptySpotifyURL = 'https://open.spotify.com/robots.txt'
@@ -30,6 +30,12 @@ var themeKey
 var theme
 var annotationsEnabled = true
 var onMessage = []
+var domParser = null
+
+function getDOMParser () {
+  // Recycle parser
+  return domParser || (domParser = new DOMParser())
+}
 
 function getHostname (url) {
   const a = document.createElement('a')
@@ -188,7 +194,10 @@ function loadGeniusSong (song, cb) {
   })
 }
 
-function loadGeniusAnnotations (song, html, cb) {
+function loadGeniusAnnotations (song, html, annotationsEnabled, cb) {
+  if (!annotationsEnabled) {
+    return cb(song, html, {})
+  }
   const regex = /annotation-fragment="\d+"/g
   let m = html.match(regex)
   if (!m) {
@@ -208,6 +217,7 @@ function loadGeniusAnnotations (song, html, cb) {
     },
     error: function loadGeniusAnnotationsOnError (response) {
       window.alert(scriptName + '\n\nError loadGeniusAnnotations(' + JSON.stringify(song) + ', cb):\n' + response)
+      cb(song, html, {})
     },
     load: function loadGeniusAnnotationsOnLoad (response) {
       const r = JSON.parse(response.responseText).response
@@ -494,6 +504,17 @@ const themes = {
     combine: function themeSpotifyXombineGeniusResources (script, onload, song, html, annotations, cb) {
       let headhtml = ''
 
+      if (html.indexOf('class="lyrics">') === -1) {
+        let originalUrl = ''
+        try {
+          const doc = getDOMParser().parseFromString(html, 'text/html')
+          originalUrl = doc.querySelector('meta[property="og:url"]').content
+        } catch (e) {
+        }
+        window.alert(scriptName + ':\nThese lyrics use the new genius design. They cannot be shown with the "Spotify theme" yet.\n\n' + originalUrl)
+        return
+      }
+
       // Make annotations clickable
       const regex = /annotation-fragment="(\d+)"/g
       html = html.replace(regex, 'onclick="showAnnotation1234.call(this, event, $1)"')
@@ -702,64 +723,45 @@ function showLyrics (song, searchresultsLengths) {
   const iframe = document.createElement('iframe')
   iframe.id = 'lyricsiframe'
   container.appendChild(iframe)
+  iframe.style.opacity = 0.1
   iframe.src = emptySpotifyURL + '?405#html,' + encodeURIComponent('Loading...')
   iframe.style.width = container.clientWidth - 1 + 'px'
   iframe.style.height = (document.querySelector('.Root__nav-bar .navBar').clientHeight + document.querySelector('.now-playing-bar ').clientHeight - bar.clientHeight) + 'px'
 
-  const spinner = document.body.appendChild(document.createElement('div'))
+  const spinnerHolder = document.body.appendChild(document.createElement('div'))
+  spinnerHolder.classList.add('loadingspinnerholder')
+  spinnerHolder.style.left = (iframe.getClientRects()[0].left + container.clientWidth / 2) + 'px'
+  spinnerHolder.style.top = '100px'
+  spinnerHolder.title = 'Downloading lyrics...'
+  const spinner = spinnerHolder.appendChild(document.createElement('div'))
   spinner.classList.add('loadingspinner')
-  spinner.style.position = 'absolute'
-  spinner.style.left = (iframe.getClientRects()[0].left + container.clientWidth / 2) + 'px'
-  spinner.style.top = '100px'
   spinner.innerHTML = '5'
-  spinner.title = 'Downloading lyrics...'
 
   loadGeniusSong(song, function loadGeniusSongCb (html) {
-    if (annotationsEnabled) {
-      spinner.innerHTML = '4'
-      spinner.title = 'Downloading annotations...'
-      loadGeniusAnnotations(song, html, function loadGeniusAnnotationsCb (song, html, annotations) {
-        spinner.innerHTML = '3'
-        spinner.title = 'Composing page...'
-        combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html) {
-          spinner.innerHTML = '2'
-          spinner.title = 'Loading page...'
-          iframe.src = emptySpotifyURL + '#html:post'
-          const iv = window.setInterval(function () {
-            iframe.contentWindow.postMessage({ iAm: scriptName, type: 'writehtml', html: html }, '*')
-            spinner.innerHTML = '1'
-            spinner.title = 'Rendering...'
-          }, 1000)
-          const clear = function () {
-            window.clearInterval(iv)
-            spinner.remove()
-          }
-          addOneMessageListener('htmlwritten', clear)
-          window.setTimeout(clear, 15000)
-          iframe.style.position = 'fixed'
-        })
-      })
-    } else {
+    spinner.innerHTML = '4'
+    spinnerHolder.title = 'Downloading annotations...'
+    loadGeniusAnnotations(song, html, annotationsEnabled, function loadGeniusAnnotationsCb (song, html, annotations) {
       spinner.innerHTML = '3'
-      spinner.title = 'Composing page...'
-      combineGeniusResources(song, html, {}, function combineGeniusResourcesCb (html) {
+      spinnerHolder.title = 'Composing page...'
+      combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html) {
         spinner.innerHTML = '2'
-        spinner.title = 'Loading page...'
+        spinnerHolder.title = 'Loading page...'
         iframe.src = emptySpotifyURL + '#html:post'
         const iv = window.setInterval(function () {
           iframe.contentWindow.postMessage({ iAm: scriptName, type: 'writehtml', html: html }, '*')
           spinner.innerHTML = '1'
-          spinner.title = 'Rendering...'
-        }, 1000)
+          spinnerHolder.title = 'Rendering...'
+        }, 1500)
         const clear = function () {
+          iframe.style.opacity = 1.0
           window.clearInterval(iv)
-          spinner.remove()
+          spinnerHolder.remove()
         }
         addOneMessageListener('htmlwritten', clear)
-        window.setTimeout(clear, 15000)
+        window.setTimeout(clear, 20000)
         iframe.style.position = 'fixed'
       })
-    }
+    })
   })
 }
 
@@ -1066,6 +1068,16 @@ function listenToMessages () {
 
 function addCss () {
   document.head.appendChild(document.createElement('style')).innerHTML = `
+  .lyricsiframe {
+    opacity:0.1;
+    transition:opacity 2s;
+  }
+  .loadingspinnerholder {
+    position:absolute;
+    top:100px;
+    left:100px;
+    cursor:progress
+  }
   .loadingspinner {
     color:rgb(255, 255, 100);
     text-align:center;
