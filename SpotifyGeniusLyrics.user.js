@@ -296,8 +296,11 @@ const themes = {
           e.className = e.className.replace(/\breferent--yellow\b/, '').replace(/\breferent--highlighted\b/, '')
         })
         this.className += ' referent--yellow referent--highlighted'
-        if (typeof annotations1234 === 'undefined') {
+        if (typeof annotations1234 === 'undefined' && document.getElementById('annotationsdata1234')) {
           annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        } else {
+          annotations1234 = {}
+          console.log('No annotation data found #annotationsdata1234')
         }
         if (id in annotations1234) {
           const annotation = annotations1234[id]
@@ -318,7 +321,9 @@ const themes = {
         }
       }
       onload.push(function () {
-        annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        if (document.getElementById('annotationsdata1234')) {
+          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        }
       })
 
       // Make song title clickable
@@ -415,7 +420,8 @@ const themes = {
 
       // Hide other stuff
       function hideStuff235 () {
-        const grayBox = document.querySelector('.column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read'); removeIfExists(grayBox)
+        const grayBox = document.querySelector('.column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read')
+        removeIfExists(grayBox)
         removeIfExists(document.querySelector('.header .header-expand_nav_menu'))
       }
       onload.push(hideStuff235)
@@ -428,8 +434,11 @@ const themes = {
           e.className = e.className.replace(/\breferent--yellow\b/, '').replace(/\breferent--highlighted\b/, '')
         })
         this.className += ' referent--yellow referent--highlighted'
-        if (typeof annotations1234 === 'undefined') {
+        if (typeof annotations1234 === 'undefined' && document.getElementById('annotationsdata1234')) {
           annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        } else {
+          annotations1234 = {}
+          console.log('No annotation data found #annotationsdata1234')
         }
         if (id in annotations1234) {
           const annotation = annotations1234[id]
@@ -469,11 +478,16 @@ const themes = {
       }
 
       onload.push(function () {
-        annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        if (document.getElementById('annotationsdata1234')) {
+          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        }
       })
 
       // Make song title clickable
       function clickableTitle037 () {
+        if (!document.querySelector('.header_with_cover_art-primary_info-title')) {
+          return
+        }
         const url = document.querySelector('meta[property="og:url"]').content
         const h1 = document.querySelector('.header_with_cover_art-primary_info-title')
         h1.innerHTML = '<a target="_blank" href="' + url + '">' + h1.innerHTML + '</a>'
@@ -524,6 +538,7 @@ const themes = {
     },
     combine: function themeSpotifyXombineGeniusResources (song, html, annotations, cb) {
       let headhtml = ''
+
       if (html.indexOf('class="lyrics">') === -1) {
         const doc = new window.DOMParser().parseFromString(html, 'text/html')
         const originalUrl = doc.querySelector('meta[property="og:url"]').content
@@ -548,39 +563,79 @@ const themes = {
           }
           const lyricsLines = parseJData(jData.songPage.lyricsData.body, [])
           const lyricshtml = lyricsLines.join('')
-          
-          const headhtml = '\n<style>'
+
+          const h1 = doc.querySelector('div[class^=SongHeader__Column] h1')
+          const titleNode = h1.firstChild
+          const titleA = h1.appendChild(document.createElement('a'))
+          titleA.href = originalUrl
+          titleA.target = '_blank'
+          titleA.appendChild(titleNode)
+          h1.classList.add('mytitle')
+
+          const titlehtml = '<div class="myheader">' + h1.parentNode.outerHTML + '</div>'
+
+          headhtml = '\n<style>'
           headhtml += '\n  @font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.ttf) format("truetype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.ttf) format("truetype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.ttf) format("truetype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}'
           headhtml += '\n  html{ \nscrollbar-color:hsla(0,0%,100%,.3) transparent;\nscrollbar-width:auto; }'
           headhtml += '\n  body {'
           headhtml += '\n    background-color: rgba(0, 0, 0, 0); color:white;'
           headhtml += '\n    font-family:spotify-circular,spotify-circular-cyrillic,spotify-circular-arabic,spotify-circular-hebrew,Helvetica Neue,Helvetica,Arial,Hiragino Kaku Gothic Pro,Meiryo,MS Gothic,sans-serif;'
           headhtml += '\n  }'
-          headhtml += '\n  .mylyrics {color: rgb(255,255,255,0.6); font-size: 1.3em; line-height: 1.1em;font-weight: 300; padding:0.1em;}'
-          headhtml += '\n  h1.header_with_cover_art-primary_info-title {line-height: 1.1em;}'
-          headhtml += '\n  h1.header_with_cover_art-primary_info-title a {color: rgb(255,255,255,0.9); font-size:1.1em}'
-          headhtml += '\n  h2 a,h2 a.header_with_cover_art-primary_info-primary_artist {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300}'
-          headhtml += '\n  .header_with_cover_art-primary_info {display:inline-block;background-color: hsla(0,0%,0%,.2);color: #000;border-radius: 2px;padding:7px 10px 0px 5px;}'
+          headhtml += '\n  .mylyrics {color: rgb(255,255,255,0.6); font-size: 1.3em; line-height: 1.1em;font-weight: 300; padding:0.6em 0.1em 0.1em 0.1em;}'
+          headhtml += '\n  .myheader {font-size: 1.0em; font-weight:300}'
+          headhtml += '\n  .myheader a:link,.myheader a:visited {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300; text-decoration:none}'
+          headhtml += '\n  h1.mytitle {font-size: 1.1em;}'
+          headhtml += '\n  h1.mytitle a:link,h1.mytitle a:visited {color: rgb(255,255,255,0.9); text-decoration:none}'
           headhtml += '\n  ::-webkit-scrollbar {width: 16px;}'
           headhtml += '\n  ::-webkit-scrollbar-thumb {background-color: hsla(0,0%,100%,.3);}'
           headhtml += '</style>'
-          return `
+
+          const message = `<div style="background: white;color: black;">
+          These genius lyrics are not fully supported by the userscript (yet)<br>
+          Could you inform the author about this problem?<br><br>
+          Just report the issue on github.com: <a target="_blank" href="https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues/new?title=Lyrics+not+fully+supported&amp;body=${encodeURIComponent(originalUrl)}">Create new issue</a><br>
+          Or write an email to <a target="_blank" href="mailto:cuzi@openmail.cc">cuzi@openmail.cc</a> and mention the song or this url: ${originalUrl}<br>
+          Thanks for your help!
+          </div>`
+
+          return cb(`
           <html>
           <head>
            ${headhtml}
           </head>
           <body style="overflow-x:hidden;width:100%;">
-            <div class="header_with_cover_art-primary_info">Title</div>'
+            ${message}
+            ${titlehtml}
             <div class="mylyrics song_body-lyrics">
             ${lyricshtml}
             </div>
           </body>
           </html>
-          `
+          `)
         }
 
-        window.alert(scriptName + ':\nThese lyrics use a new genius design. They cannot be shown with the "Spotify theme" yet.\n\n' + originalUrl)
-        return
+        return cb(`<div style="color:black;background:white;font-family:sans-serif">
+        <br>
+        <h1>&#128561; Oops!</h1>
+        <br>
+        Sorry, these lyrics seem to use new genius page design.<br>They cannot be shown with the "Spotify theme" (yet)<br>
+        Could you inform the author of this program about the problem and provide the following information:<br>
+<pre style="color:black; background:silver; border:1px solid black; width:95%; overflow:auto;margin-left: 5px;padding: 0px 5px;">
+
+Error:   Unknown genius page design
+Genius:  ${originalUrl}
+
+</pre><br>
+        You can simply post the information on github:<br>
+        <a target="_blank" href="https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues/4">https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues/4</a>
+        <br>
+        or via email: <a target="_blank" href="mailto:cuzi@openmail.cc">cuzi@openmail.cc</a>
+        <br>
+        <br>
+        Thanks for your help!
+        <br>
+        <br>
+         </div>`)
       }
 
       // Make annotations clickable
