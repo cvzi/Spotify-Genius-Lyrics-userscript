@@ -15,5 +15,10 @@ Tested with Firefox/**Tampermonkey** and Chrome/**Tampermonkey**.
 Screenshot:
 ![Screenshot of spotify web player with lyrics](screenshot.png)
 
+Screenshot:
+![Screenshot with the spotify theme enabled](screenshotReactSpotifyTheme.png)
+
+Screenshot:
+![Screenshot with the new theme genius theme enabled](screenshotReactGeniusTheme.png)
 
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
