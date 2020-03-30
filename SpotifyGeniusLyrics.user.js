@@ -13,7 +13,7 @@
 // @connect      genius.com
 // ==/UserScript==
 
-/* global GM */
+/* global GM, Reflect */
 
 const scriptName = 'SpotifyGeniusScript'
 const emptySpotifyURL = 'https://open.spotify.com/robots.txt'
@@ -37,6 +37,27 @@ function getHostname (url) {
   return a.hostname
 }
 
+function removeIfExists (e) {
+  if (e && e.remove) {
+    e.remove()
+  }
+}
+
+function removeTagsKeepText (node) {
+  while (node.firstChild) {
+    if ('tagName' in node.firstChild && node.firstChild.tagName !== 'BR') {
+      removeTagsKeepText(node.firstChild)
+    } else {
+      node.parentNode.insertBefore(node.firstChild, node)
+    }
+  }
+  node.remove()
+}
+
+function decodeHTML (s) {
+  return ('' + s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+}
+
 function metricPrefix (n, decimals, k) {
   // http://stackoverflow.com/a/18650828
   if (n <= 0) {
@@ -47,6 +68,37 @@ function metricPrefix (n, decimals, k) {
   const sizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
   const i = Math.floor(Math.log(n) / Math.log(k))
   return parseFloat((n / Math.pow(k, i)).toFixed(dm)) + sizes[i]
+}
+
+function parsePreloadedStateData (obj, parent) {
+  // Convert genius' JSON represenation of lyrics to DOM object
+  if ('children' in obj) {
+    obj.children.forEach(function (child) {
+      if (typeof (child) === 'string') {
+        if (child) {
+          parent.appendChild(document.createTextNode(child))
+        }
+      } else {
+        const node = parent.appendChild(document.createElement(child.tag))
+        if ('data' in child) {
+          for (const key in child.data) {
+            node.dataset[key] = child.data[key]
+          }
+        }
+        if ('attributes' in child) {
+          for (const attr in child.attributes) {
+            let value = child.attributes[attr]
+            if ((attr === 'href' || attr === 'src') && (!value.startsWith('http') && !value.startsWith('#'))) {
+              value = 'https://genius.com' + value
+            }
+            node.setAttribute(attr, value)
+          }
+        }
+        parsePreloadedStateData(child, node)
+      }
+    })
+  }
+  return parent
 }
 
 function loadCache () {
@@ -178,7 +230,7 @@ function geniusSearch (query, cb) {
 
 function loadGeniusSong (song, cb) {
   request({
-    url: song.result.url + '?react=1', // TODO remove react
+    url: song.result.url,
     error: function loadGeniusSongOnError (response) {
       window.alert(scriptName + '\n\nError loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
     },
@@ -195,8 +247,11 @@ function loadGeniusAnnotations (song, html, annotationsEnabled, cb) {
   const regex = /annotation-fragment="\d+"/g
   let m = html.match(regex)
   if (!m) {
-    // No annotations, skip loading from API
-    return cb(song, html, {})
+    m = html.match(/href="\/\d+\//g)
+    if (!m) {
+      // No annotations in source -> skip loading annoations from API
+      return cb(song, html, {})
+    }
   }
 
   m = m.map((s) => s.match(/\d+/)[0])
@@ -219,14 +274,22 @@ function loadGeniusAnnotations (song, html, annotationsEnabled, cb) {
       if (r.referents.forEach) {
         r.referents.forEach(function forEachReferent (referent) {
           referent.annotations.forEach(function forEachAnnotation (annotation) {
-            annotations[annotation.id] = annotation
+            if (annotation.referent_id in annotations) {
+              annotations[annotation.referent_id].push(annotation)
+            } else {
+              annotations[annotation.referent_id] = [annotation]
+            }
           })
         })
       } else {
         for (const refId in r.referents) {
           const referent = r.referents[refId]
           referent.annotations.forEach(function forEachAnnotation (annotation) {
-            annotations[annotation.id] = annotation
+            if (annotation.referent_id in annotations) {
+              annotations[annotation.referent_id].push(annotation)
+            } else {
+              annotations[annotation.referent_id] = [annotation]
+            }
           })
         }
       }
@@ -243,13 +306,6 @@ const themes = {
 
       // Define globals
       var annotations1234
-      function removeIfExists (e) { if (e && e.remove) { e.remove() } }
-      function decodeHTML652 (s) { return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') }
-
-      // Hide cookies box function
-      // var iv458
-      // function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}
-      // onload.push(function () { iv458 = window.setInterval(hideCookieBox458, 500) })
 
       // Hide footer
       function hideFooter895 () {
@@ -296,14 +352,16 @@ const themes = {
           e.className = e.className.replace(/\breferent--yellow\b/, '').replace(/\breferent--highlighted\b/, '')
         })
         this.className += ' referent--yellow referent--highlighted'
-        if (typeof annotations1234 === 'undefined' && document.getElementById('annotationsdata1234')) {
-          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
-        } else {
-          annotations1234 = {}
-          console.log('No annotation data found #annotationsdata1234')
+        if (typeof annotations1234 === 'undefined') {
+          if (document.getElementById('annotationsdata1234')) {
+            annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+          } else {
+            annotations1234 = {}
+            console.log('No annotation data found #annotationsdata1234')
+          }
         }
         if (id in annotations1234) {
-          const annotation = annotations1234[id]
+          const annotation = annotations1234[id][0]
           const main = document.querySelector('.song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary')
           main.style.paddingRight = 0
           main.innerHTML = ''
@@ -314,7 +372,7 @@ const themes = {
           const paddingTop = window.scrollY - main.offsetTop - main.parentNode.offsetTop
           let html = '<div class="annotation_sidebar_arrow" style="top: ' + arrowTop + 'px;"><svg src="left_arrow.svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10.87 21.32"><path d="M9.37 21.32L0 10.66 9.37 0l1.5 1.32-8.21 9.34L10.87 20l-1.5 1.32"></path></svg></div>'
           html += '\n<div class="u-relative nganimate-fade_slide_from_left" style="margin-left:1px;padding-top:' + paddingTop + 'px; padding-left:2px; border-left:3px #99a7ee solid"><div class="annotation_label">$author</div><div class="rich_text_formatting">$body</div></div>'
-          html = html.replace(/\$body/g, decodeHTML652(annotation.body.html)).replace(/\$author/g, decodeHTML652(annotation.created_by.name))
+          html = html.replace(/\$body/g, decodeHTML(annotation.body.html)).replace(/\$author/g, decodeHTML(annotation.created_by.name))
           div0.innerHTML = html
           targetBlankLinks145() // Change link target to _blank
           window.setTimeout(checkAnnotationHeight458, 200) // Change link target to _blank
@@ -396,6 +454,388 @@ const themes = {
       return cb(html)
     }
   },
+  geniusReact: {
+    name: 'Genius React',
+    scripts: function themeGeniusReactScripts () {
+      const onload = []
+
+      // Define globals
+      var annotations1234
+
+      function hideStuff () {
+        // Hide "This is a work in progress"
+        removeIfExists(document.getElementById('top'))
+        // Header leaderboard/nav
+        removeIfExists(document.querySelector('div[class^="Leaderboard"]'))
+        removeIfExists(document.querySelector('div[class^="StickyNav"]'))
+        // Footer except copyright hint
+        let not = false
+        document.querySelectorAll('div[class^="PageGriddesktop"] div[class^="PageFooterdesktop"]').forEach(function (div) {
+          if (!not && div.innerHTML.indexOf('©') === -1) {
+            div.remove()
+          } else {
+            not = true
+          }
+        })
+        document.querySelectorAll('div[class^="PageGriddesktop"]').forEach(function (div) {
+          div.className = ''
+        })
+        // Ads
+        document.querySelectorAll('div[class^="InreadAd__Container"]').forEach(function (div) {
+          div.parentNode.remove()
+        })
+        document.querySelectorAll('div[class^="SidebarAd__Container"]').forEach(function (div) {
+          div.parentNode.remove()
+        })
+      }
+
+      // Make song title clickable
+      function clickableTitle037 () {
+        const url = document.querySelector('meta[property="og:url"]').content
+        const h1 = document.querySelector('h1[class^="SongHeader"]')
+        h1.innerHTML = '<a target="_blank" href="' + url + '" style="color:black">' + h1.innerHTML + '</a>'
+        const div = document.querySelector('div[class^=SongHeader__CoverArt]')
+        div.innerHTML = '<a target="_blank" href="' + url + '">' + div.innerHTML + '</a>'
+      }
+      onload.push(clickableTitle037)
+
+      // Show artwork
+      onload.push(function showArtwork () {
+        document.querySelectorAll('div[class^="SizedImage__Container"] noscript').forEach(function noScriptImage (noscript) {
+          const div = noscript.parentNode
+          div.innerHTML = noscript.innerHTML
+          div.querySelector('img').style.left = '0px'
+        })
+      })
+      onload.push(hideStuff)
+
+      // Goto lyrics
+      onload.push(function () {
+        document.location.hash = '#lyrics'
+      })
+
+      // Make expandable content buttons work
+      function expandContent () {
+        const button = this
+        const content = button.parentNode.querySelector('div[class*="__Content"]') || button.parentNode.parentNode.querySelector('div[class*="__Expandable"]')
+        content.classList.forEach(function (className) {
+          if (className.indexOf('__Content') === -1 && className.indexOf('__Expandable') === -1) {
+            content.classList.remove(className)
+          }
+        })
+        button.remove()
+      }
+      onload.push(function makeExpandablesWork () {
+        document.querySelectorAll('div[class*="__Container"]').forEach(function (div) {
+          const button = div.querySelector('button[class^="Button"]')
+          if (button) {
+            button.addEventListener('click', expandContent)
+          }
+        })
+      })
+
+      // Show annotations function
+      function getAnnotationsContainer (a) {
+        let c = document.getElementById('annotationcontainer958')
+        if (!c) {
+          c = document.body.appendChild(document.createElement('div'))
+          c.setAttribute('id', 'annotationcontainer958')
+          document.head.appendChild(document.createElement('style')).innerHTML = `
+            #annotationcontainer958 {
+              opacity:0.0;
+              display:none;
+              transition:opacity 500ms;
+              position:absolute;
+              background:linear-gradient(to bottom, #FFF1, 5px, white);
+              color:black;
+              font: 100 1.125rem / 1.5 "Programme", sans-serif;
+              max-width:95%;
+              margin:10px;
+            }
+            #annotationcontainer958 .arrow {
+              height:30px;
+            }
+            #annotationcontainer958 .arrow:before {
+              content: "";
+              position: absolute;
+              width: 0px;
+              height: 0px;
+              margin-top: 20px;
+              inset: -1rem 0px 0px 50%;
+              margin-left: calc(-15px);
+              border-style: solid;
+              border-width: 0px 25px 20px;
+              border-color: transparent transparent rgb(170, 170, 170);
+            }
+            #annotationcontainer958 .annotationcontent {
+              background-color:#E9E9E9;
+              padding:5px;
+              border-bottom-left-radius: 5px;
+              border-bottom-right-radius: 5px;
+              border-top-right-radius: 0px;
+              border-top-left-radius: 0px;
+              box-shadow: #646464 5px 5px 5px;
+            }
+            #annotationcontainer958 .annotationtab {
+              display:none
+            }
+            #annotationcontainer958 .annotationtab.selected {
+              display:block
+            }
+            #annotationcontainer958 .annotationtabbar .tabbutton {
+              background-color:#d0cece;
+              cursor:pointer;
+              user-select:none;
+              padding: 1px 7px;
+              margin: 0px 3px;
+              border-radius: 5px 5px 0px 0px;
+              box-shadow: #0000004f 2px -2px 3px;
+              float:left
+            }
+            #annotationcontainer958 .annotationtabbar .tabbutton.selected {
+              background-color:#E9E9E9;
+            }
+            #annotationcontainer958 .annotationcontent .annotationfooter {
+              user-select: none;
+            }
+            #annotationcontainer958 .annotationcontent .annotationfooter > div {
+              float: right;
+              width: 20%;
+              text-align: center;
+            }
+            #annotationcontainer958 .annotationcontent a:link,#annotationcontainer958 .annotationcontent a:visited, #annotationcontainer958 .annotationcontent a:hover {
+              text-decoration: underline;
+              color: black;
+              cursor:pointer;
+            }
+
+          `
+        }
+        c.innerHTML = ''
+
+        c.style.display = 'block'
+        c.style.opacity = 1.0
+        const rect = a.getBoundingClientRect()
+        c.style.top = (window.scrollY + rect.top + rect.height + 3) + 'px'
+
+        const arrow = c.querySelector('.arrow') || c.appendChild(document.createElement('div'))
+        arrow.className = 'arrow'
+
+        let annotationTabBar = c.querySelector('.annotationtabbar')
+        if (!annotationTabBar) {
+          annotationTabBar = c.appendChild(document.createElement('div'))
+          annotationTabBar.classList.add('annotationtabbar')
+        }
+        annotationTabBar.innerHTML = ''
+        annotationTabBar.style.display = 'block'
+
+        let annotationContent = c.querySelector('.annotationcontent')
+        if (!annotationContent) {
+          annotationContent = c.appendChild(document.createElement('div'))
+          annotationContent.classList.add('annotationcontent')
+        }
+        annotationContent.style.display = 'block'
+        annotationContent.innerHTML = ''
+        return [annotationTabBar, annotationContent]
+      }
+      function switchTab (ev) {
+        const id = this.dataset.annotid
+        document.querySelectorAll('#annotationcontainer958 .annotationtabbar .tabbutton').forEach((e) => e.classList.remove('selected'))
+        document.querySelectorAll('#annotationcontainer958 .annotationtab').forEach((e) => e.classList.remove('selected'))
+        this.classList.add('selected')
+        document.querySelector(`#annotationcontainer958 .annotationtab[id="annottab_${id}"]`).classList.add('selected')
+      }
+      function showAnnotation4956 (ev) {
+        ev.preventDefault()
+
+        // Annotation id
+        const m = this.href.match(/\/(\d+)\//)
+        if (!m) {
+          return
+        }
+        const id = m[1]
+
+        // Highlight
+        document.querySelectorAll('.annotated').forEach((e) => e.classList.remove('highlighted'))
+        this.classList.add('highlighted')
+
+        // Load all annotations
+        if (typeof annotations1234 === 'undefined') {
+          if (document.getElementById('annotationsdata1234')) {
+            annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+          } else {
+            annotations1234 = {}
+            console.log('No annotation data found #annotationsdata1234')
+          }
+        }
+
+        if (id in annotations1234) {
+          const [annotationTabBar, annotationContent] = getAnnotationsContainer(this)
+          annotations1234[id].forEach(function (annotation) {
+            // Example for multiple annoations: https://genius.com/72796/
+            const tabButton = annotationTabBar.appendChild(document.createElement('div'))
+            tabButton.dataset.annotid = annotation.id
+            tabButton.classList.add('tabbutton')
+            tabButton.addEventListener('click', switchTab)
+            if (annotation.state === 'verified') {
+              tabButton.appendChild(document.createTextNode('Verified annotation'))
+            } else {
+              tabButton.appendChild(document.createTextNode('Genius annotation'))
+            }
+
+            let header = '<div class="annotationheader" style="float:right">'
+            if (annotation.authors.length === 1) {
+              if (annotation.authors[0].name) {
+                header += `<a href="${annotation.authors[0].url}">${decodeHTML(annotation.authors[0].name)}</a>`
+              } else {
+                header += `<a href="${annotation.created_by.url}">${decodeHTML(annotation.created_by.name)}</a>`
+              }
+            } else {
+              header += `<span title="Created by ${annotation.created_by.name}">${annotation.authors.length} Contributors</span>`
+            }
+            header += '</div><br style="clear:right">'
+
+            let footer = '<div class="annotationfooter">'
+            footer += `<div title="Direct link to the annotation"><a href="${annotation.share_url}">🔗 Share</a></div>`
+            if (annotation.pyongs_count) {
+              footer += `<div title="Pyongs"> ⚡ ${annotation.pyongs_count}</div>`
+            }
+            if (annotation.comment_count) {
+              footer += `<div title="Comments"> 💬 ${annotation.comment_count}</div>`
+            }
+            footer += '<div title="Total votes">'
+            if (annotation.votes_total > 0) {
+              footer += '+'
+              footer += annotation.votes_total
+              footer += '👍'
+            } else if (annotation.votes_total < 0) {
+              footer += '-'
+              footer += annotation.votes_total
+              footer += '👎'
+            } else {
+              footer += annotation.votes_total + '👍 👎'
+            }
+            footer += '</div>'
+            footer += '<br style="clear:right"></div>'
+
+            annotationContent.innerHTML += `
+            <div class="annotationtab" id="annottab_${annotation.id}">
+              ${header}
+              ${decodeHTML(annotation.body.html)}
+              ${footer}
+            </div>`
+          })
+          annotationTabBar.appendChild(document.createElement('br')).style.clear = 'left'
+          if (annotations1234[id].length === 1) {
+            annotationTabBar.style.display = 'none'
+          }
+          annotationTabBar.querySelector('.tabbutton').classList.add('selected')
+          annotationContent.querySelector('.annotationtab').classList.add('selected')
+
+          // Resize iframes and images in frame
+          window.setTimeout(function () {
+            const maxWidth = (document.body.clientWidth - 40) + 'px'
+            annotationContent.querySelectorAll('iframe,img').forEach(function (e) {
+              e.style.maxWidth = maxWidth
+            })
+            targetBlankLinks145() // Change link target to _blank
+          }, 100)
+        }
+      }
+      onload.push(function () {
+        if (document.getElementById('annotationsdata1234')) {
+          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        }
+      })
+
+      // Change links to target=_blank
+      function targetBlankLinks145 () {
+        const as = document.querySelectorAll('body a:not([href|="#"]):not([target=_blank])')
+        as.forEach(function (a) {
+          const href = a.getAttribute('href')
+          if (!href) {
+            return
+          }
+          if (!href.startsWith('#')) {
+            a.target = '_blank'
+            if (!href.startsWith('http')) {
+              a.href = 'https://genius.com' + href
+            } else if (href.startsWith('https://open.spotify.com')) {
+              a.href = href.replace('https://open.spotify.com', 'https://genius.com')
+            }
+          }
+        })
+      }
+      onload.push(() => window.setTimeout(targetBlankLinks145, 1000))
+
+      if (!annotationsEnabled) {
+        // Remove all annotations
+        onload.push(function removeAnnotations135 () {
+          document.querySelectorAll('div[class^="SongPage__Section"] a[class^="ReferentFragment"]').forEach(removeTagsKeepText)
+        })
+      } else {
+        // Add click handler to annotations
+        document.querySelectorAll('div[class^="SongPage__Section"] a[class^="ReferentFragment"]').forEach(function (a) {
+          a.classList.add('annotated')
+          a.addEventListener('click', showAnnotation4956)
+        })
+        document.body.addEventListener('click', function (e) {
+          // Hide annotation container on click outside of it
+          const annotationcontainer = document.getElementById('annotationcontainer958')
+          if (annotationcontainer && !e.target.classList.contains('.annotated') && e.target.closest('.annotated') === null) {
+            if (e.target.closest('#annotationcontainer958') === null) {
+              annotationcontainer.style.display = 'none'
+              annotationcontainer.style.opacity = 0.0
+              document.querySelectorAll('.annotated').forEach((e) => e.classList.remove('highlighted'))
+            }
+          }
+        })
+      }
+
+      // Open real page if not in frame
+      onload.push(function () {
+        if (window.top === window) {
+          document.location.href = document.querySelector('meta[property="og:url"]').content
+        }
+      })
+      return onload
+    },
+    combine: function themeGeniusReactCombineGeniusResources (song, html, annotations, cb) {
+      let headhtml = ''
+
+      // Make annotations clickable
+      const regex = /annotation-fragment="(\d+)"/g
+      html = html.replace(regex, '$0 data-annotationid="$1"')
+
+      // Change design
+      html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
+
+      // Remove cookie consent
+      html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
+
+      // Add annotation data
+      headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
+
+      // Scrollbar colors
+      headhtml += '\n<style>\nhtml{background-color:#181818;\nscrollbar-color:hsla(0,0%,100%,.3) transparent;\nscrollbar-width:auto;}\n</style>'
+
+      // Highlight annotated lines on hover
+      headhtml += `
+      <style>
+        .annotated span {
+          background-color:#f0f0f0;
+        }
+        .annotated:hover span, .annotated.highlighted span {
+          background-color:#ddd;
+        }
+      </style>`
+
+      // Add to <head>
+      const parts = html.split('</head>')
+      html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
+      return cb(html)
+    }
+  },
   spotify: {
     name: 'Spotify',
     scripts: function themeSpotifyScripts () {
@@ -403,8 +843,6 @@ const themes = {
 
       // Define globals
       var annotations1234
-      function removeIfExists (e) { if (e && e.remove) { e.remove() } }
-      function decodeHTML652 (s) { return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') }
 
       // Hide cookies box function
       // var iv458
@@ -434,14 +872,16 @@ const themes = {
           e.className = e.className.replace(/\breferent--yellow\b/, '').replace(/\breferent--highlighted\b/, '')
         })
         this.className += ' referent--yellow referent--highlighted'
-        if (typeof annotations1234 === 'undefined' && document.getElementById('annotationsdata1234')) {
-          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
-        } else {
-          annotations1234 = {}
-          console.log('No annotation data found #annotationsdata1234')
+        if (typeof annotations1234 === 'undefined') {
+          if (document.getElementById('annotationsdata1234')) {
+            annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+          } else {
+            annotations1234 = {}
+            console.log('No annotation data found #annotationsdata1234')
+          }
         }
         if (id in annotations1234) {
-          const annotation = annotations1234[id]
+          const annotation = annotations1234[id][0]
           const main = document.querySelector('.annotationbox')
           main.innerHTML = ''
           main.style.display = 'block'
@@ -454,7 +894,7 @@ const themes = {
           div0.className = 'annotationcontent'
           main.appendChild(div0)
           let html = '<div class="annotationlabel">$author</div><div class="annotation_rich_text_formatting">$body</div>'
-          html = html.replace(/\$body/g, decodeHTML652(annotation.body.html)).replace(/\$author/g, decodeHTML652(annotation.created_by.name))
+          html = html.replace(/\$body/g, decodeHTML(annotation.body.html)).replace(/\$author/g, decodeHTML(annotation.created_by.name))
           div0.innerHTML = html
           targetBlankLinks145() // Change link target to _blank
           window.setTimeout(function () { document.body.addEventListener('click', hideAnnotationOnClick1234) }, 100) // hide on click
@@ -515,7 +955,7 @@ const themes = {
       if (!annotationsEnabled) {
         // Remove all annotations
         onload.push(function removeAnnotations135 () {
-          document.querySelectorAll('.song_body-lyrics .referent').forEach(function (a) {
+          document.querySelectorAll('.song_body-lyrics .referent,.song_body-lyrics a[class*=referent]').forEach(function (a) {
             while (a.firstChild) {
               a.parentNode.insertBefore(a.firstChild, a)
             }
@@ -536,7 +976,7 @@ const themes = {
 
       return onload
     },
-    combine: function themeSpotifyXombineGeniusResources (song, html, annotations, cb) {
+    combine: function themeSpotifyXombineGeniusResources (song, html, annotations, onCombine) {
       let headhtml = ''
 
       if (html.indexOf('class="lyrics">') === -1) {
@@ -544,25 +984,18 @@ const themes = {
         const originalUrl = doc.querySelector('meta[property="og:url"]').content
 
         if (html.indexOf('__PRELOADED_STATE__ = JSON.parse(\'') !== -1) {
-          const jsonStr = html.split('__PRELOADED_STATE__ = JSON.parse(\'')[1].split('\');\n')[0].replace(/\\([^\\])/g, '$1')
+          const jsonStr = html.split('__PRELOADED_STATE__ = JSON.parse(\'')[1].split('\');\n')[0].replace(/\\([^\\])/g, '$1').replace(/\\\\/g, '\\')
           const jData = JSON.parse(jsonStr)
-          const parseJData = function (obj, arr) {
-            if ('children' in obj) {
-              obj.children.forEach(function (child) {
-                if (typeof (child) === 'string') {
-                  arr.push(child)
-                } else {
-                  parseJData(child, arr)
-                  if (child.tag === 'br') {
-                    arr.push('<br>\n')
-                  }
-                }
-              })
-            }
-            return arr
-          }
-          const lyricsLines = parseJData(jData.songPage.lyricsData.body, [])
-          const lyricshtml = lyricsLines.join('')
+
+          const root = parsePreloadedStateData(jData.songPage.lyricsData.body, document.createElement('div'))
+
+          // Annotations
+          root.querySelectorAll('a[data-id]').forEach(function (a) {
+            a.dataset.annotationid = a.dataset.id
+            a.classList.add('referent--yellow')
+          })
+
+          const lyricshtml = root.innerHTML
 
           const h1 = doc.querySelector('div[class^=SongHeader__Column] h1')
           const titleNode = h1.firstChild
@@ -574,47 +1007,50 @@ const themes = {
 
           const titlehtml = '<div class="myheader">' + h1.parentNode.outerHTML + '</div>'
 
-          headhtml = '\n<style>'
-          headhtml += '\n  @font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.ttf) format("truetype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.ttf) format("truetype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.ttf) format("truetype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}'
-          headhtml += '\n  html{ \nscrollbar-color:hsla(0,0%,100%,.3) transparent;\nscrollbar-width:auto; }'
-          headhtml += '\n  body {'
-          headhtml += '\n    background-color: rgba(0, 0, 0, 0); color:white;'
-          headhtml += '\n    font-family:spotify-circular,spotify-circular-cyrillic,spotify-circular-arabic,spotify-circular-hebrew,Helvetica Neue,Helvetica,Arial,Hiragino Kaku Gothic Pro,Meiryo,MS Gothic,sans-serif;'
-          headhtml += '\n  }'
-          headhtml += '\n  .mylyrics {color: rgb(255,255,255,0.6); font-size: 1.3em; line-height: 1.1em;font-weight: 300; padding:0.6em 0.1em 0.1em 0.1em;}'
-          headhtml += '\n  .myheader {font-size: 1.0em; font-weight:300}'
-          headhtml += '\n  .myheader a:link,.myheader a:visited {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300; text-decoration:none}'
-          headhtml += '\n  h1.mytitle {font-size: 1.1em;}'
-          headhtml += '\n  h1.mytitle a:link,h1.mytitle a:visited {color: rgb(255,255,255,0.9); text-decoration:none}'
-          headhtml += '\n  ::-webkit-scrollbar {width: 16px;}'
-          headhtml += '\n  ::-webkit-scrollbar-thumb {background-color: hsla(0,0%,100%,.3);}'
-          headhtml += '</style>'
+          headhtml = `<style>
+            @font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.ttf) format("truetype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.ttf) format("truetype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.ttf) format("truetype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}
+            html{
+              scrollbar-color:hsla(0,0%,100%,.3) transparent;
+              scrollbar-width:auto; }
+            body {
+              background-color: rgba(0, 0, 0, 0); color:white;
+              font-family:spotify-circular,spotify-circular-cyrillic,spotify-circular-arabic,spotify-circular-hebrew,Helvetica Neue,Helvetica,Arial,Hiragino Kaku Gothic Pro,Meiryo,MS Gothic,sans-serif;
+            }
+            .mylyrics {color: rgb(255,255,255,0.85); font-size: 1.3em; line-height: 1.1em;font-weight: 300; padding:0px 0.1em 0.1em 0.1em;}
+            .mylyrics a:link,.mylyrics a:visited,.mylyrics a:hover{color:rgba(255,255,255,0.95)}
+            .myheader {font-size: 1.0em; font-weight:300}
+            .myheader a:link,.myheader a:visited {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300; text-decoration:none}
+            h1.mytitle {font-size: 1.1em;}
+            h1.mytitle a:link,h1.mytitle a:visited {color: rgb(255,255,255,0.9); text-decoration:none}
+            ::-webkit-scrollbar {width: 16px;}
+            ::-webkit-scrollbar-thumb {background-color: hsla(0,0%,100%,.3);}
+            .referent--yellow.referent--highlighted { opacity:1.0; background-color: transparent; box-shadow: none; color:#1ed760; transition: color .2s linear;transition-property: color;transition-duration: 0.2s;transition-timing-function: linear;transition-delay: 0s;}
+            .annotationbox {position:absolute; display:none; max-width:95%; min-width: 160px;padding: 3px 7px;margin: 2px 0 0;background-color: #282828;background-clip: padding-box;border: 1px solid rgba(0,0,0,.15);border-radius: .25rem;}
+            .annotationbox .annotationlabel {display:inline-block;background-color: hsla(0,0%,100%,.6);color: #000;border-radius: 2px;padding: 0 .3em;}
+            .annotationbox .annotation_rich_text_formatting {color: rgb(255,255,255,0.6)}
+            .annotationbox .annotation_rich_text_formatting a {color: rgb(255,255,255,0.9)}
+          </style>`
 
-          const message = `<div style="background: white;color: black;">
-          These genius lyrics are not fully supported by the userscript (yet)<br>
-          Could you inform the author about this problem?<br><br>
-          Just report the issue on github.com: <a target="_blank" href="https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues/new?title=Lyrics+not+fully+supported&amp;body=${encodeURIComponent(originalUrl)}">Create new issue</a><br>
-          Or write an email to <a target="_blank" href="mailto:cuzi@openmail.cc">cuzi@openmail.cc</a> and mention the song or this url: ${originalUrl}<br>
-          Thanks for your help!
-          </div>`
+          // Add annotation data
+          headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
 
-          return cb(`
+          return onCombine(`
           <html>
           <head>
            ${headhtml}
           </head>
           <body style="overflow-x:hidden;width:100%;">
-            ${message}
             ${titlehtml}
             <div class="mylyrics song_body-lyrics">
             ${lyricshtml}
             </div>
+            <div class="annotationbox" id="annotationbox"></div>
           </body>
           </html>
           `)
         }
 
-        return cb(`<div style="color:black;background:white;font-family:sans-serif">
+        return onCombine(`<div style="color:black;background:white;font-family:sans-serif">
         <br>
         <h1>&#128561; Oops!</h1>
         <br>
@@ -693,7 +1129,7 @@ Genius:  ${originalUrl}
       // Add to <head>
       parts = html.split('</head>')
       html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
-      return cb(html)
+      return onCombine(html)
     }
   }
 
@@ -702,6 +1138,19 @@ themeKey = Object.keys(themes)[0]
 theme = themes[themeKey]
 
 function combineGeniusResources (song, html, annotations, cb) {
+  if (html.indexOf('__PRELOADED_STATE__ = JSON.parse') !== -1) {
+    if (!themeKey.endsWith('React') && (themeKey + 'React') in themes) {
+      themeKey += 'React'
+      theme = themes[themeKey]
+      console.log(`Temporarily activated React theme: ${theme.name}`)
+    }
+  } else {
+    if (themeKey.endsWith('React') && themeKey.substring(0, themeKey.length - 5) in themes) {
+      themeKey = themeKey.substring(0, themeKey.length - 5)
+      theme = themes[themeKey]
+      console.log(`Temporarily deactivated React theme: ${theme.name}`)
+    }
+  }
   return theme.combine(song, html, annotations, cb)
 }
 
@@ -763,6 +1212,11 @@ function hideLyrics () {
 
 function showLyrics (song, searchresultsLengths) {
   const container = getCleanLyricsContainer()
+
+  if ('info' in GM && 'scriptHandler' in GM.info && GM.info.scriptHandler === 'Greasemonkey') {
+    container.innerHTML = '<h2>This script only works in <a target="_blank" href="https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/">Tampermonkey</a></h2>Greasemonkey is no longer supported because of this <a target="_blank" href="https://github.com/greasemonkey/greasemonkey/issues/2574">bug greasemonkey/issues/2574</a> in Greasemonkey.'
+    return
+  }
 
   const separator = document.createElement('span')
   separator.setAttribute('class', 'second-line-separator')
@@ -865,13 +1319,13 @@ function showLyrics (song, searchresultsLengths) {
       spinner.innerHTML = '3'
       spinnerHolder.title = 'Composing page...'
       combineGeniusResources(song, html, annotations, function combineGeniusResourcesCb (html) {
-        spinner.innerHTML = '2'
+        spinner.innerHTML = '3'
         spinnerHolder.title = 'Loading page...'
         iframe.src = emptySpotifyURL + '#html:post'
         const iv = window.setInterval(function () {
-          iframe.contentWindow.postMessage({ iAm: scriptName, type: 'writehtml', html: html }, '*')
-          spinner.innerHTML = '1'
+          spinner.innerHTML = '2'
           spinnerHolder.title = 'Rendering...'
+          iframe.contentWindow.postMessage({ iAm: scriptName, type: 'writehtml', html: html, themeKey: themeKey }, '*')
         }, 1500)
         const clear = function () {
           window.clearInterval(iv)
@@ -880,7 +1334,12 @@ function showLyrics (song, searchresultsLengths) {
             spinnerHolder.remove()
           }, 1000)
         }
-        addOneMessageListener('htmlwritten', clear)
+        addOneMessageListener('htmlwritten', function () {
+          window.clearInterval(iv)
+          spinner.innerHTML = '1'
+          spinnerHolder.title = 'Calculating...'
+        })
+        addOneMessageListener('pageready', clear)
         window.setTimeout(clear, 20000)
         iframe.style.position = 'fixed'
       })
@@ -1104,7 +1563,13 @@ function config () {
   div = win.appendChild(document.createElement('div'))
   div.appendChild(document.createTextNode('Theme: '))
   const selectTheme = div.appendChild(document.createElement('select'))
+  if (themeKey.endsWith('React')) {
+    themeKey = themeKey.substring(0, themeKey.length - 5)
+  }
   for (const key in themes) {
+    if (key.endsWith('React')) {
+      continue
+    }
     const option = selectTheme.appendChild(document.createElement('option'))
     option.value = key
     if (themeKey === key) {
@@ -1257,7 +1722,7 @@ function main () {
       themeKey = values[0]
     } else {
       console.log('Invalid value for theme key: GM.getValue("theme") = ' + values[0])
-      themeKey = Object.keys(themes)[0]
+      themeKey = Reflect.ownKeys(themes)[0]
     }
     theme = themes[themeKey]
     annotationsEnabled = !!values[1]
@@ -1268,13 +1733,19 @@ function main () {
         if (received || typeof e.data !== 'object' || !('iAm' in e.data) || e.data.iAm !== scriptName || e.data.type !== 'writehtml') {
           return
         }
+        if ('themeKey' in e.data && Object.prototype.hasOwnProperty.call(themes, e.data.themeKey)) {
+          themeKey = e.data.themeKey
+          theme = themes[themeKey]
+          console.log(`Theme activated in iframe: ${theme.name}`)
+        }
         received = true
         document.write(e.data.html)
+        e.source.postMessage({ iAm: scriptName, type: 'htmlwritten' }, '*')
         window.setTimeout(function () {
           const onload = theme.scripts()
           onload.forEach((func) => func())
-        }, 1000)
-        e.source.postMessage({ iAm: scriptName, type: 'htmlwritten' }, '*')
+          e.source.postMessage({ iAm: scriptName, type: 'pageready' }, '*')
+        }, 500)
       })
     } else if (document.location.href.startsWith(emptySpotifyURL + '?405#html,')) {
       document.write(decodeURIComponent(document.location.hash.split('#html,')[1]))
