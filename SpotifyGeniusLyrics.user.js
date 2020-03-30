@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      11.1
+// @version      12
 // @include      https://open.spotify.com/*
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -13,7 +13,7 @@
 // @connect      genius.com
 // ==/UserScript==
 
-/* global GM, DOMParser */
+/* global GM */
 
 const scriptName = 'SpotifyGeniusScript'
 const emptySpotifyURL = 'https://open.spotify.com/robots.txt'
@@ -30,12 +30,6 @@ var themeKey
 var theme
 var annotationsEnabled = true
 var onMessage = []
-var domParser = null
-
-function getDOMParser () {
-  // Recycle parser
-  return domParser || (domParser = new DOMParser())
-}
 
 function getHostname (url) {
   const a = document.createElement('a')
@@ -184,7 +178,7 @@ function geniusSearch (query, cb) {
 
 function loadGeniusSong (song, cb) {
   request({
-    url: song.result.url,
+    url: song.result.url + '?react=1', // TODO remove react
     error: function loadGeniusSongOnError (response) {
       window.alert(scriptName + '\n\nError loadGeniusSong(' + JSON.stringify(song) + ', cb):\n' + response)
     },
@@ -245,126 +239,145 @@ const themes = {
   genius: {
     name: 'Genius (Default)',
     scripts: function themeGeniusScripts () {
-      const script = []
       const onload = []
 
       // Define globals
-      script.push('var iv458,annotations1234;')
-      script.push('function removeIfExists (e) { if(e && e.remove) { e.remove() }}')
-      script.push('function decodeHTML652 (s) { return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">") }')
+      var annotations1234
+      function removeIfExists (e) { if (e && e.remove) { e.remove() } }
+      function decodeHTML652 (s) { return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') }
 
       // Hide cookies box function
-      // script.push('function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}')
-      // onload.push('iv458 = window.setInterval(hideCookieBox458, 500)')
+      // var iv458
+      // function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}
+      // onload.push(function () { iv458 = window.setInterval(hideCookieBox458, 500) })
 
       // Hide footer
-      script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){removeIfExists(f[0]);removeIfExists(f[1])}}')
-      script.push('function hideSecondaryFooter895 () {if(document.querySelector(".footer.footer--secondary")){document.querySelector(".footer.footer--secondary").parentNode.removeChild(document.querySelector(".footer.footer--secondary"))}}')
+      function hideFooter895 () {
+        const f = document.querySelectorAll('.footer div')
+        if (f.length) {
+          removeIfExists(f[0])
+          removeIfExists(f[1])
+        }
+      }
+      function hideSecondaryFooter895 () {
+        if (document.querySelector('.footer.footer--secondary')) {
+          document.querySelector('.footer.footer--secondary').parentNode.removeChild(document.querySelector('.footer.footer--secondary'))
+        }
+      }
 
-      onload.push('hideFooter895()')
-      onload.push('hideSecondaryFooter895()')
+      onload.push(hideFooter895)
+      onload.push(hideSecondaryFooter895)
 
       // Hide other stuff
-      script.push('function hideStuff235 () {')
-      script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); removeIfExists(grayBox)')
-      script.push('  removeIfExists(document.querySelector(".header .header-expand_nav_menu"))')
-      script.push('}')
-      onload.push('hideStuff235()')
+      function hideStuff235 () {
+        const grayBox = document.querySelector('.column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read')
+        removeIfExists(grayBox)
+        removeIfExists(document.querySelector('.header .header-expand_nav_menu'))
+      }
+      onload.push(hideStuff235)
 
       // Maked header wider
-      onload.push('document.querySelector(".header_with_cover_art-inner.column_layout .column_layout-column_span--primary").style.width = "100%";')
+      onload.push(function () {
+        document.querySelector('.header_with_cover_art-inner.column_layout .column_layout-column_span--primary').style.width = '100%'
+      })
 
       // Show annotations function
-      script.push('function checkAnnotationHeight458() {')
-      script.push('  const annot = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary .column_layout-flex_column-fill_column")')
-      script.push('  const arrow = annot.querySelector(".annotation_sidebar_arrow")')
-      script.push('  if (arrow.offsetTop > arrow.nextElementSibling.clientHeight) {')
-      script.push('    arrow.nextElementSibling.style.paddingTop = (10 + parseInt(arrow.nextElementSibling.style.paddingTop) + arrow.offsetTop - arrow.nextElementSibling.clientHeight) + "px"')
-      script.push('  }')
-      script.push('}')
-      script.push('function showAnnotation1234(ev, id) {')
-      script.push('  ev.preventDefault()')
-      script.push('  document.querySelectorAll(".song_body-lyrics .referent--yellow.referent--highlighted").forEach((e) => e.className = e.className.replace(/\\breferent--yellow\\b/, "").replace(/\\breferent--highlighted\\b/, ""))')
-      script.push('  this.className += " referent--yellow referent--highlighted"')
-      script.push('  if(typeof annotations1234 == "undefined") {')
-      script.push('    annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML)')
-      script.push('  }')
-      script.push('  if(id in annotations1234) {')
-      script.push('    let annotation = annotations1234[id]')
-      script.push('    let main = document.querySelector(".song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary")')
-      script.push('    main.style.paddingRight = 0')
-      script.push('    main.innerHTML = ""')
-      script.push('    const div0 = document.createElement("div")')
-      script.push('    div0.className = "column_layout-flex_column-fill_column"')
-      script.push('    main.appendChild(div0)')
-      script.push('    const arrowTop = this.offsetTop')
-      script.push('    const paddingTop = window.scrollY - main.offsetTop - main.parentNode.offsetTop')
-      script.push('    let html = \'<div class="annotation_sidebar_arrow" style="top: \'+arrowTop+\'px;"><svg src="left_arrow.svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10.87 21.32"><path d="M9.37 21.32L0 10.66 9.37 0l1.5 1.32-8.21 9.34L10.87 20l-1.5 1.32"></path></svg></div>\';')
-      script.push('    html += \'\\n<div class="u-relative nganimate-fade_slide_from_left" style="margin-left:1px;padding-top:\'+paddingTop+\'px; padding-left:2px; border-left:3px #99a7ee solid"><div class="annotation_label">$author</div><div class="rich_text_formatting">$body</div></div>\';')
-      script.push('    html = html.replace(/\\$body/g, decodeHTML652(annotation.body.html)).replace(/\\$author/g, decodeHTML652(annotation.created_by.name));')
-      script.push('    div0.innerHTML = html')
-      script.push('    targetBlankLinks145 (); // Change link target to _blank')
-      script.push('    window.setTimeout(checkAnnotationHeight458, 200) // Change link target to _blank')
-      script.push('  }')
-      script.push('}')
-      onload.push('annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML);')
+      function checkAnnotationHeight458 () {
+        const annot = document.querySelector('.song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary .column_layout-flex_column-fill_column')
+        const arrow = annot.querySelector('.annotation_sidebar_arrow')
+        if (arrow.offsetTop > arrow.nextElementSibling.clientHeight) {
+          arrow.nextElementSibling.style.paddingTop = (10 + parseInt(arrow.nextElementSibling.style.paddingTop) + arrow.offsetTop - arrow.nextElementSibling.clientHeight) + 'px'
+        }
+      }
+      function showAnnotation1234 (ev) {
+        ev.preventDefault()
+        const id = this.dataset.annotationid
+        document.querySelectorAll('.song_body-lyrics .referent--yellow.referent--highlighted').forEach(function (e) {
+          e.className = e.className.replace(/\breferent--yellow\b/, '').replace(/\breferent--highlighted\b/, '')
+        })
+        this.className += ' referent--yellow referent--highlighted'
+        if (typeof annotations1234 === 'undefined') {
+          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        }
+        if (id in annotations1234) {
+          const annotation = annotations1234[id]
+          const main = document.querySelector('.song_body.column_layout .column_layout-column_span.column_layout-column_span--secondary')
+          main.style.paddingRight = 0
+          main.innerHTML = ''
+          const div0 = document.createElement('div')
+          div0.className = 'column_layout-flex_column-fill_column'
+          main.appendChild(div0)
+          const arrowTop = this.offsetTop
+          const paddingTop = window.scrollY - main.offsetTop - main.parentNode.offsetTop
+          let html = '<div class="annotation_sidebar_arrow" style="top: ' + arrowTop + 'px;"><svg src="left_arrow.svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10.87 21.32"><path d="M9.37 21.32L0 10.66 9.37 0l1.5 1.32-8.21 9.34L10.87 20l-1.5 1.32"></path></svg></div>'
+          html += '\n<div class="u-relative nganimate-fade_slide_from_left" style="margin-left:1px;padding-top:' + paddingTop + 'px; padding-left:2px; border-left:3px #99a7ee solid"><div class="annotation_label">$author</div><div class="rich_text_formatting">$body</div></div>'
+          html = html.replace(/\$body/g, decodeHTML652(annotation.body.html)).replace(/\$author/g, decodeHTML652(annotation.created_by.name))
+          div0.innerHTML = html
+          targetBlankLinks145() // Change link target to _blank
+          window.setTimeout(checkAnnotationHeight458, 200) // Change link target to _blank
+        }
+      }
+      onload.push(function () {
+        annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+      })
 
       // Make song title clickable
-      script.push('function clickableTitle037() { let url = document.querySelector("meta[property=\'og:url\']").content; ')
-      script.push('  let h1 = document.querySelector(\'.header_with_cover_art-primary_info-title\'); h1.innerHTML = \'<a target="_blank" href="\' + url + \'" style="color:#ffff64">\' + h1.innerHTML + \'</a>\'')
-      script.push('  let div = document.querySelector(\'.header_with_cover_art-cover_art .cover_art\'); div.innerHTML = \'<a target="_blank" href="\' + url + \'">\' + div.innerHTML + \'</a>\'')
-      script.push('}')
-      onload.push('clickableTitle037()')
+      function clickableTitle037 () {
+        const url = document.querySelector('meta[property="og:url"]').content
+        const h1 = document.querySelector('.header_with_cover_art-primary_info-title')
+        h1.innerHTML = '<a target="_blank" href="' + url + '" style="color:#ffff64">' + h1.innerHTML + '</a>'
+        const div = document.querySelector('.header_with_cover_art-cover_art .cover_art')
+        div.innerHTML = '<a target="_blank" href="' + url + '">' + div.innerHTML + '</a>'
+      }
+      onload.push(clickableTitle037)
 
       // Change links to target=_blank
-      script.push('function targetBlankLinks145 () {')
-      script.push('  const as = document.querySelectorAll(\'body a:not([href|="#"]):not([target=_blank])\')')
-      script.push('  as.forEach(function(a) {')
-      script.push('    a.target = "_blank";')
-      script.push('  })')
-      script.push('}')
-      onload.push('window.setTimeout(targetBlankLinks145, 1000)')
+      function targetBlankLinks145 () {
+        const as = document.querySelectorAll('body a:not([href|="#"]):not([target=_blank])')
+        as.forEach(function (a) {
+          a.target = '_blank'
+        })
+      }
+      onload.push(() => window.setTimeout(targetBlankLinks145, 1000))
 
       if (!annotationsEnabled) {
         // Remove all annotations
-        script.push('function removeAnnotations135() { ')
-        script.push('  document.querySelectorAll(".song_body-lyrics .referent").forEach(function(a) { ')
-        script.push('    while(a.firstChild) { ')
-        script.push('      a.parentNode.insertBefore(a.firstChild, a)')
-        script.push('    } ')
-        script.push('    a.remove()')
-        script.push('  }) ')
-        // Remove right column
-        script.push('  document.querySelector(".song_body.column_layout .column_layout-column_span--secondary").remove()')
-        script.push('  document.querySelector(".song_body.column_layout .column_layout-column_span--primary").style.width = "100%"')
-        script.push('} ')
-        onload.push('removeAnnotations135()')
+        onload.push(function removeAnnotations135 () {
+          document.querySelectorAll('.song_body-lyrics .referent').forEach(function (a) {
+            while (a.firstChild) {
+              a.parentNode.insertBefore(a.firstChild, a)
+            }
+            a.remove()
+          })
+          // Remove right column
+          document.querySelector('.song_body.column_layout .column_layout-column_span--secondary').remove()
+          document.querySelector('.song_body.column_layout .column_layout-column_span--primary').style.width = '100%'
+        })
+      } else {
+        // Add click handler to annotations
+        document.querySelectorAll('*[data-annotationid]').forEach((a) => a.addEventListener('click', showAnnotation1234))
       }
 
       // Open real page if not in frame
-      onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
-
-      return [script, onload]
+      onload.push(function () {
+        if (window.top === window) {
+          document.location.href = document.querySelector('meta[property="og:url"]').content
+        }
+      })
+      return onload
     },
-    combine: function themeGeniusCombineGeniusResources (script, onload, song, html, annotations, cb) {
+    combine: function themeGeniusCombineGeniusResources (song, html, annotations, cb) {
       let headhtml = ''
 
       // Make annotations clickable
       const regex = /annotation-fragment="(\d+)"/g
-      html = html.replace(regex, 'onclick="showAnnotation1234.call(this, event, $1)"')
+      html = html.replace(regex, '$0 data-annotationid="$1"')
 
       // Change design
       html = html.split('<div class="leaderboard_ad_container">').join('<div class="leaderboard_ad_container" style="width:0px;height:0px">')
 
       // Remove cookie consent
       html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
-
-      // Add onload attribute to body and hide horizontal scroll bar
-      let parts = html.split('<body')
-      html = parts[0] + '<body style="overflow-x:hidden;width:100%" onload="onload7846552()"' + parts.slice(1).join('<body')
-
-      // Add script code
-      headhtml += '\n<script type="text/javascript">\n\n' + script.join('\n') + '\n\nfunction onload7846552() {\n' + onload.join('\n') + '\n}\n\n</script>'
 
       // Add annotation data
       headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
@@ -373,7 +386,7 @@ const themes = {
       headhtml += '\n<style>\nhtml{background-color:#181818;\nscrollbar-color:hsla(0,0%,100%,.3) transparent;\nscrollbar-width:auto;}\n</style>'
 
       // Add to <head>
-      parts = html.split('</head>')
+      const parts = html.split('</head>')
       html = parts[0] + '\n' + headhtml + '\n</head>' + parts.slice(1).join('</head>')
       return cb(html)
     }
@@ -381,143 +394,198 @@ const themes = {
   spotify: {
     name: 'Spotify',
     scripts: function themeSpotifyScripts () {
-      const script = []
       const onload = []
 
       // Define globals
-      script.push('var iv458,annotations1234;')
-      script.push('function removeIfExists (e) { if(e && e.remove) { e.remove() }}')
-      script.push('function decodeHTML652 (s) { return s.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">") }')
+      var annotations1234
+      function removeIfExists (e) { if (e && e.remove) { e.remove() } }
+      function decodeHTML652 (s) { return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') }
 
       // Hide cookies box function
-      // script.push('function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}')
-      // onload.push('iv458 = window.setInterval(hideCookieBox458, 500)')
+      // var iv458
+      // function hideCookieBox458 () {if(document.querySelector(".optanon-allow-all")){document.querySelector(".optanon-allow-all").click(); clearInterval(iv458)}}
+      // onload.push(function() { iv458 = window.setInterval(hideCookieBox458, 500) })
 
       // Hide footer
-      script.push('function hideFooter895 () {let f = document.querySelectorAll(".footer div"); if(f.length){removeIfExists(f[0]);removeIfExists(f[1])}}')
-      script.push('function hideSecondaryFooter895 () {if(document.querySelector(".footer.footer--secondary")){document.querySelector(".footer.footer--secondary").parentNode.removeChild(document.querySelector(".footer.footer--secondary"))}}')
+      function hideFooter895 () { const f = document.querySelectorAll('.footer div'); if (f.length) { removeIfExists(f[0]); removeIfExists(f[1]) } }
+      function hideSecondaryFooter895 () { if (document.querySelector('.footer.footer--secondary')) { document.querySelector('.footer.footer--secondary').parentNode.removeChild(document.querySelector('.footer.footer--secondary')) } }
 
-      onload.push('hideFooter895()')
-      onload.push('hideSecondaryFooter895()')
+      onload.push(hideFooter895)
+      onload.push(hideSecondaryFooter895)
 
       // Hide other stuff
-      script.push('function hideStuff235 () {')
-      script.push('  const grayBox = document.querySelector(".column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read"); removeIfExists(grayBox)')
-      script.push('  removeIfExists(document.querySelector(".header .header-expand_nav_menu"))')
-      script.push('}')
-      onload.push('hideStuff235()')
+      function hideStuff235 () {
+        const grayBox = document.querySelector('.column_layout-column_span-initial_content>.dfp_unit.u-x_large_bottom_margin.dfp_unit--in_read'); removeIfExists(grayBox)
+        removeIfExists(document.querySelector('.header .header-expand_nav_menu'))
+      }
+      onload.push(hideStuff235)
 
       // Show annotations function
-      script.push('function showAnnotation1234(ev, id) {')
-      script.push('  ev.preventDefault()')
-      script.push('  document.querySelectorAll(".song_body-lyrics .referent--yellow.referent--highlighted").forEach((e) => e.className = e.className.replace(/\\breferent--yellow\\b/, "").replace(/\\breferent--highlighted\\b/, ""))')
-      script.push('  this.className += " referent--yellow referent--highlighted"')
-      script.push('  if(typeof annotations1234 == "undefined") {')
-      script.push('    annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML)')
-      script.push('  }')
-      script.push('  if(id in annotations1234) {')
-      script.push('    let annotation = annotations1234[id]')
-      script.push('    let main = document.querySelector(".annotationbox")')
-      script.push('    main.innerHTML = ""')
-      script.push('    main.style.display = "block"')
-      script.push('    const bodyRect = document.body.getBoundingClientRect()')
-      script.push('    const elemRect = this.getBoundingClientRect()')
-      script.push('    const top = elemRect.top - bodyRect.top + elemRect.height')
-      script.push('    main.style.top = top + "px"')
-      script.push('    main.style.left = "5px"')
-      script.push('    const div0 = document.createElement("div")')
-      script.push('    div0.className = "annotationcontent"')
-      script.push('    main.appendChild(div0)')
-      script.push('    html = \'<div class="annotationlabel">$author</div><div class="annotation_rich_text_formatting">$body</div>\';')
-      script.push('    html = html.replace(/\\$body/g, decodeHTML652(annotation.body.html)).replace(/\\$author/g, decodeHTML652(annotation.created_by.name));')
-      script.push('    div0.innerHTML = html')
-      script.push('    targetBlankLinks145 (); // Change link target to _blank')
-      script.push('    window.setTimeout(function() { document.body.addEventListener("click", hideAnnotationOnClick1234);}, 100); // hide on click')
-      script.push('  }')
-      script.push('}')
-      script.push('function hideAnnotationOnClick1234(ev) {')
-      script.push('  let target = ev.target')
-      script.push('  while(target) {')
-      script.push('   if(target.id == "annotationbox") {')
-      script.push('     return')
-      script.push('   }')
-      script.push('   if(target.className && target.className.indexOf("referent") !== -1) {')
-      script.push('     let id = parseInt(target.dataset.id)')
-      script.push('     return showAnnotation1234.call(target, ev, id)')
-      script.push('   }')
-      script.push('   target = target.parentNode')
-      script.push('  }')
-      script.push('  document.body.removeEventListener("click", hideAnnotationOnClick1234);')
-      script.push('  let main = document.querySelector(".annotationbox")')
-      script.push('  main.style.display = "none"')
-      script.push('}')
+      function showAnnotation1234 (ev) {
+        ev.preventDefault()
+        const id = this.dataset.annotationid
+        document.querySelectorAll('.song_body-lyrics .referent--yellow.referent--highlighted').forEach(function (e) {
+          e.className = e.className.replace(/\breferent--yellow\b/, '').replace(/\breferent--highlighted\b/, '')
+        })
+        this.className += ' referent--yellow referent--highlighted'
+        if (typeof annotations1234 === 'undefined') {
+          annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+        }
+        if (id in annotations1234) {
+          const annotation = annotations1234[id]
+          const main = document.querySelector('.annotationbox')
+          main.innerHTML = ''
+          main.style.display = 'block'
+          const bodyRect = document.body.getBoundingClientRect()
+          const elemRect = this.getBoundingClientRect()
+          const top = elemRect.top - bodyRect.top + elemRect.height
+          main.style.top = top + 'px'
+          main.style.left = '5px'
+          const div0 = document.createElement('div')
+          div0.className = 'annotationcontent'
+          main.appendChild(div0)
+          let html = '<div class="annotationlabel">$author</div><div class="annotation_rich_text_formatting">$body</div>'
+          html = html.replace(/\$body/g, decodeHTML652(annotation.body.html)).replace(/\$author/g, decodeHTML652(annotation.created_by.name))
+          div0.innerHTML = html
+          targetBlankLinks145() // Change link target to _blank
+          window.setTimeout(function () { document.body.addEventListener('click', hideAnnotationOnClick1234) }, 100) // hide on click
+        }
+      }
+      function hideAnnotationOnClick1234 (ev) {
+        let target = ev.target
+        while (target) {
+          if (target.id === 'annotationbox') {
+            return
+          }
+          if (target.className && target.className.indexOf('referent') !== -1) {
+            const id = parseInt(target.dataset.id)
+            return showAnnotation1234.call(target, ev, id)
+          }
+          target = target.parentNode
+        }
+        document.body.removeEventListener('click', hideAnnotationOnClick1234)
+        const main = document.querySelector('.annotationbox')
+        main.style.display = 'none'
+      }
 
-      onload.push('annotations1234 = JSON.parse(document.getElementById("annotationsdata1234").innerHTML);')
+      onload.push(function () {
+        annotations1234 = JSON.parse(document.getElementById('annotationsdata1234').innerHTML)
+      })
 
       // Make song title clickable
-      script.push('function clickableTitle037() { ')
-      script.push('  let url = document.querySelector("meta[property=\'og:url\']").content; ')
-      script.push('  let h1 = document.querySelector(\'.header_with_cover_art-primary_info-title\'); ')
-      script.push('  h1.innerHTML = \'<a target="_blank" href="\' + url + \'">\' + h1.innerHTML + \'</a>\'')
-      // Featuring and album name
-      script.push('  let h2 = document.querySelector(\'.header_with_cover_art-primary_info-primary_artist\').parentNode; ')
-      script.push('  document.querySelectorAll(".metadata_unit-label").forEach(function(el) { ')
-      script.push('    if(el.innerText.toLowerCase().indexOf("feat") !== -1) ')
-      script.push('      h1.innerHTML += " "+el.parentNode.innerText.trim(); ')
-      script.push('    else if(el.innerText.toLowerCase().indexOf("album") !== -1) ')
-      script.push('      h2.innerHTML = h2.innerHTML + " \u2022 " + el.parentNode.querySelector("a").parentNode.innerHTML.trim(); ')
-      script.push('  }); ')
-      // Remove other meta like Producer
-      script.push('  while(document.querySelector("h3")) { ')
-      script.push('    document.querySelector("h3").remove() ')
-      script.push('  } ')
-      script.push('}')
-      onload.push('clickableTitle037()')
+      function clickableTitle037 () {
+        const url = document.querySelector('meta[property="og:url"]').content
+        const h1 = document.querySelector('.header_with_cover_art-primary_info-title')
+        h1.innerHTML = '<a target="_blank" href="' + url + '">' + h1.innerHTML + '</a>'
+        // Featuring and album name
+        const h2 = document.querySelector('.header_with_cover_art-primary_info-primary_artist').parentNode
+        document.querySelectorAll('.metadata_unit-label').forEach(function (el) {
+          if (el.innerText.toLowerCase().indexOf('feat') !== -1) { h1.innerHTML += ' ' + el.parentNode.innerText.trim() } else if (el.innerText.toLowerCase().indexOf('album') !== -1) { h2.innerHTML = h2.innerHTML + ' \u2022 ' + el.parentNode.querySelector('a').parentNode.innerHTML.trim() }
+        })
+        // Remove other meta like Producer
+        while (document.querySelector('h3')) {
+          document.querySelector('h3').remove()
+        }
+      }
+      onload.push(clickableTitle037)
 
       // Change links to target=_blank
-      script.push('function targetBlankLinks145 () {')
-      script.push('  const as = document.querySelectorAll(\'body a:not([href|="#"]):not([target=_blank])\')')
-      script.push('  as.forEach(function(a) {')
-      script.push('    a.target = "_blank";')
-      script.push('  })')
-      script.push('}')
-      onload.push('window.setTimeout(targetBlankLinks145, 1000)')
+      function targetBlankLinks145 () {
+        const as = document.querySelectorAll('body a:not([href|="#"]):not([target=_blank])')
+        as.forEach(function (a) {
+          a.target = '_blank'
+        })
+      }
+      onload.push(() => window.setTimeout(targetBlankLinks145, 1000))
 
       if (!annotationsEnabled) {
         // Remove all annotations
-        script.push('function removeAnnotations135() { ')
-        script.push('  document.querySelectorAll(".song_body-lyrics .referent").forEach(function(a) { ')
-        script.push('    while(a.firstChild) { ')
-        script.push('      a.parentNode.insertBefore(a.firstChild, a)')
-        script.push('    } ')
-        script.push('    a.remove()')
-        script.push('  }) ')
-        script.push('} ')
-        onload.push('removeAnnotations135()')
+        onload.push(function removeAnnotations135 () {
+          document.querySelectorAll('.song_body-lyrics .referent').forEach(function (a) {
+            while (a.firstChild) {
+              a.parentNode.insertBefore(a.firstChild, a)
+            }
+            a.remove()
+          })
+        })
+      } else {
+        // Add click handler to annotations
+        document.querySelectorAll('*[data-annotationid]').forEach((a) => a.addEventListener('click', showAnnotation1234))
       }
 
       // Open real page if not in frame
-      onload.push('if(top==window) {document.location.href = document.querySelector("meta[property=\'og:url\']").content}')
-
-      return [script, onload]
-    },
-    combine: function themeSpotifyXombineGeniusResources (script, onload, song, html, annotations, cb) {
-      let headhtml = ''
-
-      if (html.indexOf('class="lyrics">') === -1) {
-        let originalUrl = ''
-        try {
-          const doc = getDOMParser().parseFromString(html, 'text/html')
-          originalUrl = doc.querySelector('meta[property="og:url"]').content
-        } catch (e) {
+      onload.push(function () {
+        if (window.top === window) {
+          document.location.href = document.querySelector('meta[property="og:url"]').content
         }
-        window.alert(scriptName + ':\nThese lyrics use the new genius design. They cannot be shown with the "Spotify theme" yet.\n\n' + originalUrl)
+      })
+
+      return onload
+    },
+    combine: function themeSpotifyXombineGeniusResources (song, html, annotations, cb) {
+      let headhtml = ''
+      if (html.indexOf('class="lyrics">') === -1) {
+        const doc = new window.DOMParser().parseFromString(html, 'text/html')
+        const originalUrl = doc.querySelector('meta[property="og:url"]').content
+
+        if (html.indexOf('__PRELOADED_STATE__ = JSON.parse(\'') !== -1) {
+          const jsonStr = html.split('__PRELOADED_STATE__ = JSON.parse(\'')[1].split('\');\n')[0].replace(/\\([^\\])/g, '$1')
+          const jData = JSON.parse(jsonStr)
+          const parseJData = function (obj, arr) {
+            if ('children' in obj) {
+              obj.children.forEach(function (child) {
+                if (typeof (child) === 'string') {
+                  arr.push(child)
+                } else {
+                  parseJData(child, arr)
+                  if (child.tag === 'br') {
+                    arr.push('<br>\n')
+                  }
+                }
+              })
+            }
+            return arr
+          }
+          const lyricsLines = parseJData(jData.songPage.lyricsData.body, [])
+          const lyricshtml = lyricsLines.join('')
+          
+          const headhtml = '\n<style>'
+          headhtml += '\n  @font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Light.ttf) format("truetype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Book.ttf) format("truetype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular;src:url("https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIv3T-Bold.ttf) format("truetype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-arabic;src:url("https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIAraOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-hebrew;src:url("https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUIHbrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Light.otf) format("opentype");font-weight:200;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Book.otf) format("opentype");font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:spotify-circular-cyrillic;src:url("https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff2") format("woff2"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.woff) format("woff"),url(https://open.scdn.co/fonts/CircularSpUICyrOnly-Bold.otf) format("opentype");font-weight:600;font-style:normal;font-display:swap}'
+          headhtml += '\n  html{ \nscrollbar-color:hsla(0,0%,100%,.3) transparent;\nscrollbar-width:auto; }'
+          headhtml += '\n  body {'
+          headhtml += '\n    background-color: rgba(0, 0, 0, 0); color:white;'
+          headhtml += '\n    font-family:spotify-circular,spotify-circular-cyrillic,spotify-circular-arabic,spotify-circular-hebrew,Helvetica Neue,Helvetica,Arial,Hiragino Kaku Gothic Pro,Meiryo,MS Gothic,sans-serif;'
+          headhtml += '\n  }'
+          headhtml += '\n  .mylyrics {color: rgb(255,255,255,0.6); font-size: 1.3em; line-height: 1.1em;font-weight: 300; padding:0.1em;}'
+          headhtml += '\n  h1.header_with_cover_art-primary_info-title {line-height: 1.1em;}'
+          headhtml += '\n  h1.header_with_cover_art-primary_info-title a {color: rgb(255,255,255,0.9); font-size:1.1em}'
+          headhtml += '\n  h2 a,h2 a.header_with_cover_art-primary_info-primary_artist {color: rgb(255,255,255,0.9); font-size:1.0em; font-weight:300}'
+          headhtml += '\n  .header_with_cover_art-primary_info {display:inline-block;background-color: hsla(0,0%,0%,.2);color: #000;border-radius: 2px;padding:7px 10px 0px 5px;}'
+          headhtml += '\n  ::-webkit-scrollbar {width: 16px;}'
+          headhtml += '\n  ::-webkit-scrollbar-thumb {background-color: hsla(0,0%,100%,.3);}'
+          headhtml += '</style>'
+          return `
+          <html>
+          <head>
+           ${headhtml}
+          </head>
+          <body style="overflow-x:hidden;width:100%;">
+            <div class="header_with_cover_art-primary_info">Title</div>'
+            <div class="mylyrics song_body-lyrics">
+            ${lyricshtml}
+            </div>
+          </body>
+          </html>
+          `
+        }
+
+        window.alert(scriptName + ':\nThese lyrics use a new genius design. They cannot be shown with the "Spotify theme" yet.\n\n' + originalUrl)
         return
       }
 
       // Make annotations clickable
       const regex = /annotation-fragment="(\d+)"/g
-      html = html.replace(regex, 'onclick="showAnnotation1234.call(this, event, $1)"')
+      html = html.replace(regex, '$0 data-annotationid="$1"')
 
       // Remove cookie consent
       html = html.replace(/<script defer="true" src="https:\/\/cdn.cookielaw.org.+?"/, '<script ')
@@ -528,12 +596,11 @@ const themes = {
       // Extract title
       const title = '<div class="header_with_cover_art-primary_info">' + html.split('class="header_with_cover_art-primary_info">')[1].split('</div>').slice(0, 3).join('</div>') + '</div></div>'
 
-      // Remove body content, add onload attribute to body, hide horizontal scroll bar, add lyrics
+      // Remove body content, hide horizontal scroll bar, add lyrics
       let parts = html.split('<body', 2)
-      html = parts[0] + '<body style="overflow-x:hidden;width:100%;" onload="onload7846552()"' + parts[1].split('>')[0] + '>\n\n' + title + '\n\n' + lyrics + '\n\n<div class="annotationbox" id="annotationbox"></div><div style="height:5em"></div></body></html>'
-
-      // Add script code
-      headhtml += '\n<script type="text/javascript">\n\n' + script.join('\n') + '\n\nfunction onload7846552() {\n' + onload.join('\n') + '\n}\n\n</script>'
+      html = parts[0] + '<body style="overflow-x:hidden;width:100%;" ' + parts[1].split('>')[0] + '>\n\n' +
+      title + '\n\n' + lyrics +
+      '\n\n<div class="annotationbox" id="annotationbox"></div><div style="height:5em"></div></body></html>'
 
       // Add annotation data
       headhtml += '\n<script id="annotationsdata1234" type="application/json">' + JSON.stringify(annotations).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</script>'
@@ -580,8 +647,7 @@ themeKey = Object.keys(themes)[0]
 theme = themes[themeKey]
 
 function combineGeniusResources (song, html, annotations, cb) {
-  const [script, onload] = theme.scripts()
-  return theme.combine(script, onload, song, html, annotations, cb)
+  return theme.combine(song, html, annotations, cb)
 }
 
 function onResize () {
@@ -753,9 +819,11 @@ function showLyrics (song, searchresultsLengths) {
           spinnerHolder.title = 'Rendering...'
         }, 1500)
         const clear = function () {
-          iframe.style.opacity = 1.0
           window.clearInterval(iv)
-          spinnerHolder.remove()
+          window.setTimeout(function () {
+            iframe.style.opacity = 1.0
+            spinnerHolder.remove()
+          }, 1000)
         }
         addOneMessageListener('htmlwritten', clear)
         window.setTimeout(clear, 20000)
@@ -1043,6 +1111,8 @@ function config () {
   clearCacheButton.addEventListener('click', function onClearCacheButtonClick () {
     Promise.all([GM.setValue('selectioncache', '{}'), GM.setValue('requestcache', '{}')]).then(function () {
       clearCacheButton.innerHTML = 'Cleared'
+      selectionCache = {}
+      requestCache = {}
     })
   })
 }
@@ -1145,9 +1215,9 @@ function main () {
         }
         received = true
         document.write(e.data.html)
-        const [script, onload] = theme.scripts()
         window.setTimeout(function () {
-          eval(script.join('\n') + '\n' + onload.join('\n')) // eslint-disable-line no-eval
+          const onload = theme.scripts()
+          onload.forEach((func) => func())
         }, 1000)
         e.source.postMessage({ iAm: scriptName, type: 'htmlwritten' }, '*')
       })
