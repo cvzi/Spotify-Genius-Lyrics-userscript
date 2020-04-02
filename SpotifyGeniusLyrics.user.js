@@ -934,7 +934,11 @@ const themes = {
         // Featuring and album name
         const h2 = document.querySelector('.header_with_cover_art-primary_info-primary_artist').parentNode
         document.querySelectorAll('.metadata_unit-label').forEach(function (el) {
-          if (el.innerText.toLowerCase().indexOf('feat') !== -1) { h1.innerHTML += ' ' + el.parentNode.innerText.trim() } else if (el.innerText.toLowerCase().indexOf('album') !== -1) { h2.innerHTML = h2.innerHTML + ' \u2022 ' + el.parentNode.querySelector('a').parentNode.innerHTML.trim() }
+          if (el.innerText.toLowerCase().indexOf('feat') !== -1) {
+            h1.innerHTML += ' ' + el.parentNode.innerText.trim()
+          } else if (el.innerText.toLowerCase().indexOf('album') !== -1) {
+            h2.innerHTML = h2.innerHTML + ' \u2022 ' + el.parentNode.querySelector('a').parentNode.innerHTML.trim()
+          }
         })
         // Remove other meta like Producer
         while (document.querySelector('h3')) {
