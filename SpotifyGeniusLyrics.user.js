@@ -6,7 +6,7 @@
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @version      13
-// @require      https://github.com/cvzi/GeniusLyricsUserscriptLibrary/raw/master/GeniusLyrics.js
+// @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
 // @grant        GM.getValue
