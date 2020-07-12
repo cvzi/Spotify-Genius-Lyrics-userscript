@@ -1,8 +1,8 @@
 # Spotify-Genius-Lyrics-userscript
 A userscript or greasemonkey script that shows lyrics from [genius.com](https://genius.com/) on the [Spotify Web Player](https://open.spotify.com/)
 
-It's primarily designed for Firefox with [Tampermonkey](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/) and Chrome with [Tampermonkey](https://www.tampermonkey.net/).
-General information about userscripts and how to use them can be found at [openuserjs.org/about/Userscript-Beginners-HOWTO](https://openuserjs.org/about/Userscript-Beginners-HOWTO).
+This is a userscript for your browser. It's primarily designed for
+[Tampermonkey](https://www.tampermonkey.net/) ![Chrome logo](https://raw.githubusercontent.com/OpenUserJS/OpenUserJS.org/master/public/images/ua/chrome16.png) ![Firefox logo](https://raw.githubusercontent.com/OpenUserJS/OpenUserJS.org/master/public/images/ua/firefox16.png)
 
 This userscript **DOES NOT** work with Greasemonkey because of [this bug greasemonkey/issues/2574](https://github.com/greasemonkey/greasemonkey/issues/2574) in Greasemonkey.
 
