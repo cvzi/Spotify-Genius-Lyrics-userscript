@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      14
+// @version      15
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -72,6 +72,7 @@ function getCleanLyricsContainer () {
     topContainer.parentNode.insertBefore(resizeContainer, topContainer.nextSibling)
   }
   resizeLeftContainer = topContainer
+  resizeContainer.style.zIndex = 10
 
   return document.getElementById('lyricscontainer')
 }
@@ -91,6 +92,7 @@ function listSongs (hits, container, query) {
   if (!container) {
     container = getCleanLyricsContainer()
   }
+  container.style.backgroundColor = 'rgba(0,0,0,.8)'
 
   // Back to search button
   const backToSearchButton = document.createElement('a')
@@ -250,6 +252,16 @@ function main () {
     }
   }
 }
+
+window.setTimeout(function removeAds () {
+  try {
+    if (document.querySelector('.Root__top-bar header>button').outerHTML.toLowerCase().indexOf('premium') !== -1) {
+      document.querySelector('.Root__top-bar header>button').remove()
+    }
+  } catch (e) {
+    console.log(e)
+  }
+}, 3000)
 
 const genius = geniusLyrics({
   GM: GM,
