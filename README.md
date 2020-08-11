@@ -10,9 +10,12 @@ This userscript **DOES NOT** work with Greasemonkey because of [this bug greasem
 
 If you already have a userscript extension installed, you can install it below:
 
-
 [**Click here to install**](https://openuserjs.org/install/cuzi/Spotify_Genius_Lyrics.user.js) 
 Tested with Firefox/**Tampermonkey** and Chrome/**Tampermonkey**.
+
+Similar scripts:
+*   [Youtube Genius Lyrics](https://github.com/cvzi/Youtube-Genius-Lyrics-userscript)
+*   [Youtube Music Genius Lyrics](https://github.com/cvzi/Youtube-Music-Genius-Lyrics-userscript)
 
 Screenshot:
 ![Screenshot of spotify web player with lyrics](screenshot.png)
