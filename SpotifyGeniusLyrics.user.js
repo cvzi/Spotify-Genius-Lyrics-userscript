@@ -5,11 +5,12 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      15
+// @version      16
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
 // @grant        GM.getValue
+// @grant        GM.registerMenuCommand
 // @connect      genius.com
 // @include      https://open.spotify.com/*
 // ==/UserScript==
@@ -19,6 +20,7 @@
 'use strict'
 
 const scriptName = 'SpotifyGeniusScript'
+const scriptNameFull = 'Spotify Genius Lyrics'
 var resizeLeftContainer
 var resizeContainer
 var optionCurrentSize = 30.0
@@ -281,3 +283,5 @@ const genius = geniusLyrics({
   initResize: initResize,
   onResize: onResize
 })
+
+GM.registerMenuCommand(scriptNameFull + ' - Show lyrics', () => addLyrics(true))
