@@ -15,6 +15,23 @@
 // @include      https://open.spotify.com/*
 // ==/UserScript==
 
+/*
+    Copyright (C) 2019 cuzi (cuzi@openmail.cc)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 /* global genius, geniusLyrics, unsafeWindow, GM */ // eslint-disable-line no-unused-vars
 
 'use strict'
@@ -209,7 +226,7 @@ function addLyricsButton () {
   }
   const b = document.createElement('div')
   b.setAttribute('id', 'showlyricsbutton')
-  b.setAttribute('style', 'position:absolute; top: 0px; right:0px; color:#ffff64; cursor:pointer')
+  b.setAttribute('style', 'position:absolute; top: 0px; right:0px; color:#ffff64; cursor:pointer; z-index:3000')
   b.setAttribute('title', 'Load lyrics from genius.com')
   b.appendChild(document.createTextNode('🅖'))
   b.addEventListener('click', function onShowLyricsButtonClick () {
