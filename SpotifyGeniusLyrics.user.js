@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      16
+// @version      17
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -36,8 +36,7 @@
 
 'use strict'
 
-const scriptName = 'SpotifyGeniusScript'
-const scriptNameFull = 'Spotify Genius Lyrics'
+const scriptName = 'Spotify Genius Lyrics'
 var resizeLeftContainer
 var resizeContainer
 var optionCurrentSize = 30.0
@@ -97,6 +96,7 @@ function getCleanLyricsContainer () {
 }
 
 function hideLyrics () {
+  addLyricsButton()
   document.querySelectorAll('.loadingspinner').forEach((spinner) => spinner.remove())
   if (document.getElementById('lyricscontainer')) {
     document.getElementById('lyricscontainer').parentNode.removeChild(document.getElementById('lyricscontainer'))
@@ -104,7 +104,6 @@ function hideLyrics () {
     topContainer.style.width = '100%'
     topContainer.style.removeProperty('float')
   }
-  addLyricsButton()
 }
 
 function listSongs (hits, container, query) {
@@ -226,15 +225,20 @@ function addLyricsButton () {
   }
   const b = document.createElement('div')
   b.setAttribute('id', 'showlyricsbutton')
-  b.setAttribute('style', 'position:absolute; top: 0px; right:0px; color:#ffff64; cursor:pointer; z-index:3000')
+  b.setAttribute('style', 'position:absolute; top: 0px; right:0px; font-size:14px; color:#ffff64; cursor:pointer; z-index:3000;')
   b.setAttribute('title', 'Load lyrics from genius.com')
   b.appendChild(document.createTextNode('🅖'))
   b.addEventListener('click', function onShowLyricsButtonClick () {
     genius.option.autoShow = true // Temporarily enable showing lyrics automatically on song change
     genius.iv.main = window.setInterval(main, 2000)
+    b.remove()
     addLyrics(true)
   })
   document.body.appendChild(b)
+  if (b.clientWidth < 10) {
+    b.setAttribute('style', 'position:absolute; top: 0px; right:0px; font-size:14px; background-color:#0007; color:#ffff64; cursor:pointer; z-index:3000;border:1px solid #ffff64;border-radius: 100%;padding: 0px 5px;font-size: 10px;')
+    b.innerHTML = 'G'
+  }
 }
 
 function addCss () {
@@ -301,4 +305,4 @@ const genius = geniusLyrics({
   onResize: onResize
 })
 
-GM.registerMenuCommand(scriptNameFull + ' - Show lyrics', () => addLyrics(true))
+GM.registerMenuCommand(scriptName + ' - Show lyrics', () => addLyrics(true))
