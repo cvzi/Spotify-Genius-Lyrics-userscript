@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2019, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      17
+// @version      18
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -230,6 +230,7 @@ function addLyricsButton () {
   b.appendChild(document.createTextNode('🅖'))
   b.addEventListener('click', function onShowLyricsButtonClick () {
     genius.option.autoShow = true // Temporarily enable showing lyrics automatically on song change
+    window.clearInterval(genius.iv.main)
     genius.iv.main = window.setInterval(main, 2000)
     b.remove()
     addLyrics(true)
@@ -278,8 +279,9 @@ function main () {
 
 window.setTimeout(function removeAds () {
   try {
-    if (document.querySelector('.Root__top-bar header>button').outerHTML.toLowerCase().indexOf('premium') !== -1) {
-      document.querySelector('.Root__top-bar header>button').remove()
+    const button = document.querySelector('.Root__top-bar header>button')
+    if (button && button.outerHTML.toLowerCase().indexOf('premium') !== -1) {
+      button.remove()
     }
   } catch (e) {
     console.log(e)
