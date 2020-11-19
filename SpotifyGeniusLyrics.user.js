@@ -3,9 +3,9 @@
 // @description  Show lyrics from genius.com on the Spotify web player
 // @namespace    https://greasyfork.org/users/20068
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
-// @copyright    2019, cuzi (https://github.com/cvzi)
+// @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      18
+// @version      19
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -16,7 +16,7 @@
 // ==/UserScript==
 
 /*
-    Copyright (C) 2019 cuzi (cuzi@openmail.cc)
+    Copyright (C) 2020 cuzi (cuzi@openmail.cc)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,9 +37,9 @@
 'use strict'
 
 const scriptName = 'Spotify Genius Lyrics'
-var resizeLeftContainer
-var resizeContainer
-var optionCurrentSize = 30.0
+let resizeLeftContainer
+let resizeContainer
+let optionCurrentSize = 30.0
 GM.getValue('optioncurrentsize', optionCurrentSize).then(function (value) {
   optionCurrentSize = value
 })
@@ -142,8 +142,27 @@ function listSongs (hits, container, query) {
   })
 
   // List search results
-  const trackhtml = '<div class="tracklist-col position-outer"><div class="tracklist-play-pause tracklist-top-align"><span style="color:silver;font-size:2.0em">🅖</span></div><div class="position tracklist-top-align"><span style="font-size:1.5em">📄</span></div></div><div class="tracklist-col name"><div class="track-name-wrapper tracklist-top-align"><div class="tracklist-name ellipsis-one-line" dir="auto">$title</div><div class="second-line"><span class="TrackListRow__explicit-label">$lyrics_state</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__artist-name-link" href="#">$artist</a></span><span class="second-line-separator" aria-label="in album">•</span><span class="ellipsis-one-line" dir="auto"><a tabindex="-1" class="tracklist-row__album-name-link" href="#">👁 <span style="font-size:0.8em">$stats.pageviews</span></a></span></div></div></div>'
-  container.innerHTML = '<section class="tracklist-container"><ol class="tracklist" style="width:99%"></ol></section>'
+  const trackhtml = `
+<div class="geniushiticon">
+  <div class="geniushiticonout">
+    <span style="color:silver;font-size:2.0em">🅖</span>
+  </div>
+  <div class="geniushiticonover">
+    <span style="opacity:0.7;font-size:1.5em">📄</span>
+  </div>
+</div>
+<div class="geniushitname">
+  <div class="track-name-wrapper tracklist-top-align">
+    <div class="tracklist-name ellipsis-one-line" dir="auto">$title</div>
+    <div class="second-line">
+      <span class="geniusbadge">$lyrics_state</span>
+      <span class="ellipsis-one-line" dir="auto">$artist</span>
+      <span class="second-line-separator" aria-label="in album">•</span>
+      <span class="ellipsis-one-line" dir="auto">👁 <span style="font-size:0.8em">$stats.pageviews</span></span>
+    </div>
+  </div>
+</div>`
+  container.innerHTML = '<section class="tracklist-container"><ol class="tracklist geniushits" style="width:99%"></ol></section>'
 
   container.insertBefore(hideButton, container.firstChild)
   container.insertBefore(separator, container.firstChild)
@@ -264,7 +283,52 @@ function addCss () {
   .lyricsnavbar a:hover,.lyricsnavbar span:hover {
     color:white;
     text-decoration:none;
-  }`
+  }
+
+  .geniushits li {
+    cursor:pointer
+  }
+  .geniushits li:hover {
+    background-color: #fff5;
+    border-radius: 5px;
+  }
+  .geniushits li .geniushiticonout {
+    display:inline-block
+  }
+  .geniushits li:hover .geniushiticonout {
+    display:none
+  }
+  .geniushits li .geniushiticonover {
+    display:none
+  }
+  .geniushits li:hover .geniushiticonover {
+    display:inline-block
+  }
+  .geniushiticon {
+    width:25px;
+    height:2em;
+    display:inline-block;
+  }
+  .geniushitname {
+    display:inline-block;
+  }
+  .geniushitname .tracklist-name {
+    font-size: 16px;
+    font-weight: 400;
+    color:white
+  }
+  .geniushitname .geniusbadge {
+    color: #121212;
+    background-color: hsla(0,0%,100%,.6);
+    border-radius: 2px;
+    text-transform: uppercase;
+    font-size: 9px;
+    line-height: 10px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 2px;
+  }
+  `
 }
 
 function main () {
