@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      19
+// @version      20
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -177,14 +177,19 @@ function listSongs (hits, container, query) {
     genius.f.showLyrics(JSON.parse(this.dataset.hit), searchresultsLengths)
   }
   hits.forEach(function forEachHit (hit) {
-    const li = document.createElement('li')
+    const li = ol.appendChild(document.createElement('li'))
     li.setAttribute('class', 'tracklist-row')
     li.setAttribute('role', 'button')
     li.innerHTML = trackhtml.replace(/\$title/g, hit.result.title_with_featured).replace(/\$artist/g, hit.result.primary_artist.name).replace(/\$lyrics_state/g, hit.result.lyrics_state).replace(/\$stats\.pageviews/g, 'pageviews' in hit.result.stats ? genius.f.metricPrefix(hit.result.stats.pageviews, 1) : ' - ')
     li.dataset.hit = JSON.stringify(hit)
 
     li.addEventListener('click', onclick)
-    ol.appendChild(li)
+
+    const geniushitname = li.querySelector('.geniushitname')
+    if (geniushitname.clientWidth > (li.clientWidth - 30)) {
+      geniushitname.style.width = (li.clientWidth - 30) + 'px'
+      geniushitname.classList.add('runningtext')
+    }
   })
 }
 
@@ -311,11 +316,18 @@ function addCss () {
   }
   .geniushitname {
     display:inline-block;
+    position: relative;
+    overflow:hidden
   }
   .geniushitname .tracklist-name {
     font-size: 16px;
     font-weight: 400;
-    color:white
+    color:white;
+  }
+  .geniushitname.runningtext .tracklist-name {
+    display: inline-block;
+    position: relative;
+    animation: 3s linear 0s infinite alternate runtext;
   }
   .geniushitname .geniusbadge {
     color: #121212;
@@ -328,6 +340,18 @@ function addCss () {
     height: 16px;
     padding: 0 2px;
   }
+
+  @keyframes runtext {
+    0%, 25% {
+      transform: translateX(0%);
+      left: 0%;
+    }
+    75%, 100% {
+      transform: translateX(-100%);
+      left: 100%;
+    }
+  }
+
   `
 }
 
