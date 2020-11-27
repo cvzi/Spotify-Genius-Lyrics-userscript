@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      20
+// @version      21
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -199,7 +199,19 @@ function addLyrics (force, beLessSpecific) {
   if (feat !== -1) {
     songTitle = songTitle.substring(0, feat).trim()
   }
-  const musicIsPlaying = document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause') !== -1
+  let musicIsPlaying = false
+  if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
+    // Old design
+    musicIsPlaying = document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause') !== -1
+  } else if (document.querySelector('.now-playing-bar .player-controls__buttons button')) {
+    // New design 11-2020
+    document.querySelectorAll('.now-playing-bar .player-controls__buttons button').forEach(function (button) {
+      if (button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1) {
+        musicIsPlaying = true
+      }
+    })
+  }
+
   const songArtistsArr = []
   document.querySelectorAll('.Root__now-playing-bar .now-playing .ellipsis-one-line a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
 
@@ -365,11 +377,21 @@ function main () {
   }
 }
 
-window.setTimeout(function removeAds () {
+window.setInterval(function removeAds () {
+  // Remove "premium" button
   try {
     const button = document.querySelector('.Root__top-bar header>button')
     if (button && button.outerHTML.toLowerCase().indexOf('premium') !== -1) {
       button.remove()
+    }
+  } catch (e) {
+    console.log(e)
+  }
+  // Remove "install app" button
+  try {
+    const button = document.querySelector('a[href*="/download"]')
+    if (button) {
+      button.parentNode.remove()
     }
   } catch (e) {
     console.log(e)
