@@ -155,10 +155,11 @@ function listSongs (hits, container, query) {
   <div class="track-name-wrapper tracklist-top-align">
     <div class="tracklist-name ellipsis-one-line" dir="auto">$title</div>
     <div class="second-line">
-      <span class="geniusbadge">$lyrics_state</span>
       <span class="ellipsis-one-line" dir="auto">$artist</span>
       <span class="second-line-separator" aria-label="in album">•</span>
       <span class="ellipsis-one-line" dir="auto">👁 <span style="font-size:0.8em">$stats.pageviews</span></span>
+      <span class="second-line-separator" aria-label="in album">•</span>
+      <span class="geniusbadge">$lyrics_state</span>
     </div>
   </div>
 </div>`
@@ -341,6 +342,11 @@ function addCss () {
     position: relative;
     animation: 3s linear 0s infinite alternate runtext;
   }
+
+  .geniushits .second-line-separator {
+    opacity: 0.7
+  }
+
   .geniushitname .geniusbadge {
     color: #121212;
     background-color: hsla(0,0%,100%,.6);
@@ -351,6 +357,7 @@ function addCss () {
     min-width: 16px;
     height: 16px;
     padding: 0 2px;
+    margin: 0 3px;
   }
 
   @keyframes runtext {
