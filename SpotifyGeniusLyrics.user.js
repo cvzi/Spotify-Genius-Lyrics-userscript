@@ -206,10 +206,24 @@ function listSongs (hits, container, query) {
 
 function addLyrics (force, beLessSpecific) {
   let songTitle = document.querySelector('a[data-testid="nowplaying-track-link"]').innerText
-  const feat = songTitle.indexOf(' (feat')
+  const feat = songTitle.toLowerCase().indexOf('(feat')
   if (feat !== -1) {
     songTitle = songTitle.substring(0, feat).trim()
   }
+  let remaster = songTitle.search(/-?\s*\d{4}.+remaster/i)
+  if (remaster !== -1) {
+    songTitle = songTitle.substring(0, remaster).trim()
+  }
+  remaster = songTitle.toLowerCase().indexOf('(remaster')
+  if (remaster !== -1) {
+    songTitle = songTitle.substring(0, remaster).trim()
+  }
+  remaster = songTitle.toLowerCase().indexOf('remaster')
+  if (remaster !== -1) {
+    songTitle = songTitle.substring(0, remaster).trim()
+  }
+  songTitle = songTitle.replace(/[-).]$/, '').trim()
+
   let musicIsPlaying = false
   if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
     // Old design
