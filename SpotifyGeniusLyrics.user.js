@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      21
+// @version      22
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -46,14 +46,24 @@ GM.getValue('optioncurrentsize', optionCurrentSize).then(function (value) {
 
 function setFrameDimensions (container, iframe, bar) {
   iframe.style.width = container.clientWidth - 1 + 'px'
-  iframe.style.height = (document.querySelector('.Root__nav-bar nav').clientHeight + document.querySelector('.now-playing-bar').clientHeight - bar.clientHeight) + 'px'
+  try {
+    iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.now-playing-bar').clientHeight - bar.clientHeight) + 'px'
+  } catch (e) {
+    console.error(e)
+    iframe.style.height = document.documentElement.clientHeight + 'px'
+  }
 }
 
 function onResize () {
   const iframe = document.getElementById('lyricsiframe')
   if (iframe) {
     iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
-    iframe.style.height = (document.querySelector('.Root__nav-bar nav').clientHeight + document.querySelector('.now-playing-bar').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
+    try {
+      iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.now-playing-bar').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
+    } catch (e) {
+      console.error(e)
+      iframe.style.height = document.documentElement.clientHeight + 'px'
+    }
   }
 }
 function initResize () {
