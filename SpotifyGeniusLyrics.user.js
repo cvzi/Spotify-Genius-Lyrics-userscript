@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      22
+// @version      22.1
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -92,7 +92,7 @@ function getCleanLyricsContainer () {
     topContainer.style.float = 'left'
     resizeContainer = document.createElement('div')
     resizeContainer.id = 'lyricscontainer'
-    resizeContainer.style = 'min-height: 100%; width: ' + optionCurrentSize + '%; position: relative; z-index: 1; float:left'
+    resizeContainer.style = 'min-height: 100%; width: ' + optionCurrentSize + '%; position: relative; z-index: 1; float:left;background-color: rgb(80, 80, 80);background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgb(18, 18, 18))'
     topContainer.parentNode.insertBefore(resizeContainer, topContainer.nextSibling)
   } else {
     resizeContainer = document.getElementById('lyricscontainer')
@@ -222,7 +222,7 @@ function addLyrics (force, beLessSpecific) {
   if (remaster !== -1) {
     songTitle = songTitle.substring(0, remaster).trim()
   }
-  songTitle = songTitle.replace(/[-).]$/, '').trim()
+  songTitle = songTitle.replace(/[-)(.]$/, '').trim()
 
   let musicIsPlaying = false
   if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
