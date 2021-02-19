@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      22.1
+// @version      22.2
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -206,23 +206,8 @@ function listSongs (hits, container, query) {
 
 function addLyrics (force, beLessSpecific) {
   let songTitle = document.querySelector('a[data-testid="nowplaying-track-link"]').innerText
-  const feat = songTitle.toLowerCase().indexOf('(feat')
-  if (feat !== -1) {
-    songTitle = songTitle.substring(0, feat).trim()
-  }
-  let remaster = songTitle.search(/-?\s*\d{4}.+remaster/i)
-  if (remaster !== -1) {
-    songTitle = songTitle.substring(0, remaster).trim()
-  }
-  remaster = songTitle.toLowerCase().indexOf('(remaster')
-  if (remaster !== -1) {
-    songTitle = songTitle.substring(0, remaster).trim()
-  }
-  remaster = songTitle.toLowerCase().indexOf('remaster')
-  if (remaster !== -1) {
-    songTitle = songTitle.substring(0, remaster).trim()
-  }
-  songTitle = songTitle.replace(/[-)(.]$/, '').trim()
+
+  songTitle = genius.f.cleanUpSongTitle(songTitle)
 
   let musicIsPlaying = false
   if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
@@ -243,12 +228,42 @@ function addLyrics (force, beLessSpecific) {
   genius.f.loadLyrics(force, beLessSpecific, songTitle, songArtistsArr, musicIsPlaying)
 }
 
+let lastPos = null
+function updateAutoScroll () {
+  let pos = null
+  try {
+    const [current, total] = Array.from(document.querySelectorAll('.Root__now-playing-bar .playback-bar__progress-time')).map(e => e.textContent.trim()).map(s => s.split(':').reverse().map((d, i, a) => parseInt(d) * Math.pow(60, i)).reduce((a, c) => a + c, 0))
+    pos = current / total
+  } catch (e) {
+    // Could not parse current song position
+    pos = null
+  }
+  if (pos != null && !Number.isNaN(pos) && lastPos !== pos) {
+    genius.f.scrollLyrics(pos)
+    lastPos = pos
+  }
+}
+window.setInterval(updateAutoScroll, 7000)
+
 function showSearchField (query) {
   const b = getCleanLyricsContainer()
   const div = b.appendChild(document.createElement('div'))
   div.style = 'padding:5px'
   div.appendChild(document.createTextNode('Search genius.com: '))
-  div.appendChild(document.createElement('br'))
+
+  // Hide button
+  const hideButton = div.appendChild(document.createElement('a'))
+  hideButton.href = '#'
+  hideButton.style = 'float: right; padding-right: 10px;'
+  hideButton.appendChild(document.createTextNode('Hide'))
+  hideButton.addEventListener('click', function hideButtonClick (ev) {
+    ev.preventDefault()
+    hideLyrics()
+  })
+
+  const br = div.appendChild(document.createElement('br'))
+  br.style.clear = 'right'
+
   div.style.paddingRight = '15px'
   const input = div.appendChild(document.createElement('input'))
   input.style = 'width:92%;border:0;border-radius:500px;padding:8px 5px 8px 25px;text-overflow:ellipsis'
@@ -416,7 +431,7 @@ window.setInterval(function removeAds () {
       button.remove()
     }
   } catch (e) {
-    console.log(e)
+    console.warn(e)
   }
   // Remove "install app" button
   try {
@@ -425,7 +440,7 @@ window.setInterval(function removeAds () {
       button.parentNode.remove()
     }
   } catch (e) {
-    console.log(e)
+    console.warn(e)
   }
 }, 3000)
 
