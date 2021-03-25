@@ -5,7 +5,7 @@
 // @license      GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright    2020, cuzi (https://github.com/cvzi)
 // @supportURL   https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version      22.3
+// @version      22.4
 // @require      https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM.setValue
@@ -47,7 +47,7 @@ GM.getValue('optioncurrentsize', optionCurrentSize).then(function (value) {
 function setFrameDimensions (container, iframe, bar) {
   iframe.style.width = container.clientWidth - 1 + 'px'
   try {
-    iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.now-playing-bar').clientHeight - bar.clientHeight) + 'px'
+    iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.Root__now-playing-bar').clientHeight - bar.clientHeight) + 'px'
   } catch (e) {
     console.error(e)
     iframe.style.height = document.documentElement.clientHeight + 'px'
@@ -59,7 +59,7 @@ function onResize () {
   if (iframe) {
     iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
     try {
-      iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.now-playing-bar').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
+      iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.Root__now-playing-bar').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
     } catch (e) {
       console.error(e)
       iframe.style.height = document.documentElement.clientHeight + 'px'
@@ -213,9 +213,9 @@ function addLyrics (force, beLessSpecific) {
   if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
     // Old design
     musicIsPlaying = document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause') !== -1
-  } else if (document.querySelector('.now-playing-bar .player-controls__buttons button')) {
+  } else if (document.querySelector('.Root__now-playing-bar .player-controls__buttons button')) {
     // New design 11-2020
-    document.querySelectorAll('.now-playing-bar .player-controls__buttons button').forEach(function (button) {
+    document.querySelectorAll('.Root__now-playing-bar .player-controls__buttons button').forEach(function (button) {
       if (button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1) {
         musicIsPlaying = true
       }
@@ -223,7 +223,7 @@ function addLyrics (force, beLessSpecific) {
   }
 
   const songArtistsArr = []
-  document.querySelectorAll('.Root__now-playing-bar .now-playing .ellipsis-one-line a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  document.querySelectorAll('.Root__now-playing-bar .ellipsis-one-line a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
 
   genius.f.loadLyrics(force, beLessSpecific, songTitle, songArtistsArr, musicIsPlaying)
 }
@@ -413,7 +413,7 @@ function addCss () {
 }
 
 function main () {
-  if (document.querySelector('.now-playing')) {
+  if (document.querySelector('.Root__now-playing-bar .playback-bar')) {
     if (genius.option.autoShow) {
       addLyrics()
     } else {
