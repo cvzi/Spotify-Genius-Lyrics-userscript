@@ -12,7 +12,7 @@
 // @license         GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
-// @version         22.5
+// @version         22.6
 // @require         https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -223,7 +223,7 @@ function addLyrics (force, beLessSpecific) {
   } else if (document.querySelector('.Root__now-playing-bar .player-controls__buttons button')) {
     // New design 11-2020
     document.querySelectorAll('.Root__now-playing-bar .player-controls__buttons button').forEach(function (button) {
-      if (button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1) {
+      if (button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1 || button.innerHTML.indexOf('M3 2h3v12H3zm7 0h3v12h-3z') !== -1) {
         musicIsPlaying = true
       }
     })
@@ -420,7 +420,7 @@ function addCss () {
 }
 
 function main () {
-  if (document.querySelector('.Root__now-playing-bar .playback-bar')) {
+  if (document.querySelector('.Root__now-playing-bar .playback-bar') && document.querySelector('a[data-testid="nowplaying-track-link"]')) {
     if (genius.option.autoShow) {
       addLyrics()
     } else {
