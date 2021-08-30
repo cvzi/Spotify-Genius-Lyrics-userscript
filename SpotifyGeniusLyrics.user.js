@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         22.8.3
+// @version         22.8.4
 // @require         https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -240,11 +240,16 @@ let lastPos = null
 function updateAutoScroll () {
   let pos = null
   try {
-    const [current, total] = Array.from(document.querySelectorAll('.Root__now-playing-bar .playback-bar__progress-time')).map(e => e.textContent.trim()).map(s => s.split(':').reverse().map((d, i, a) => parseInt(d) * Math.pow(60, i)).reduce((a, c) => a + c, 0))
+    const els = document.querySelectorAll('.Root__now-playing-bar [data-testid="playback-position"],.Root__now-playing-bar [data-testid="playback-duration"]')
+    if (els.length !== 2) {
+      throw new Error(`Expected 2 playback elements, found ${els.length}`)
+    }
+    const [current, total] = Array.from(els).map(e => e.textContent.trim()).map(s => s.split(':').reverse().map((d, i, a) => parseInt(d) * Math.pow(60, i)).reduce((a, c) => a + c, 0))
     pos = current / total
   } catch (e) {
     // Could not parse current song position
     pos = null
+    console.debug(`Could not parse song position: ${e}`)
   }
   if (pos != null && !Number.isNaN(pos) && lastPos !== pos) {
     genius.f.scrollLyrics(pos)
