@@ -434,7 +434,7 @@ window.setInterval(function removeAds () {
   try {
     const button = document.querySelector('.Root__top-bar header>button')
     if (button && button.outerHTML.toLowerCase().indexOf('premium') !== -1) {
-      button.remove()
+      button.style.display = 'none'
     }
   } catch (e) {
     console.warn(e)
@@ -443,7 +443,7 @@ window.setInterval(function removeAds () {
   try {
     const button = document.querySelector('a[href*="/download"]')
     if (button) {
-      button.parentNode.remove()
+      button.parentNode.display = 'none'
     }
   } catch (e) {
     console.warn(e)
