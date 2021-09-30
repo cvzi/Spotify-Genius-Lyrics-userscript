@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         22.8.5
+// @version         22.8.6
 // @require         https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -212,9 +212,10 @@ function listSongs (hits, container, query) {
   })
 }
 
-function addLyrics (force, beLessSpecific) {
-  let songTitle = document.querySelector('a[data-testid="nowplaying-track-link"],.Root__now-playing-bar .ellipsis-one-line a[href^="/track/"],.Root__now-playing-bar .ellipsis-one-line a[href^="/album/"]').innerText
+const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root__now-playing-bar .ellipsis-one-line a[href^="/track/"],.Root__now-playing-bar .ellipsis-one-line a[href^="/album/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/album/"]'
 
+function addLyrics (force, beLessSpecific) {
+  let songTitle = document.querySelector(songTitleQuery).innerText
   songTitle = genius.f.cleanUpSongTitle(songTitle)
 
   let musicIsPlaying = false
@@ -231,7 +232,7 @@ function addLyrics (force, beLessSpecific) {
   }
 
   const songArtistsArr = []
-  document.querySelectorAll('.Root__now-playing-bar .ellipsis-one-line a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  document.querySelectorAll('.Root__now-playing-bar .ellipsis-one-line a[href^="/artist/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
 
   genius.f.loadLyrics(force, beLessSpecific, songTitle, songArtistsArr, musicIsPlaying)
 }
@@ -426,7 +427,7 @@ function addCss () {
 }
 
 function main () {
-  if (document.querySelector('.Root__now-playing-bar .playback-bar') && document.querySelector('a[data-testid="nowplaying-track-link"],.Root__now-playing-bar .ellipsis-one-line a[href^="/track/"],.Root__now-playing-bar .ellipsis-one-line a[href^="/album/"]')) {
+  if (document.querySelector('.Root__now-playing-bar .playback-bar') && document.querySelector(songTitleQuery)) {
     if (genius.option.autoShow) {
       addLyrics()
     } else {
