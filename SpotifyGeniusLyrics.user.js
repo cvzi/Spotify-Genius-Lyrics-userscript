@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         22.8.8
+// @version         22.8.9
 // @require         https://openuserjs.org/src/libs/cuzi/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -451,6 +451,19 @@ window.setInterval(function removeAds () {
     const button = document.querySelector('a[href*="/download"]')
     if (button) {
       button.parentNode.style.display = 'none'
+    }
+  } catch (e) {
+    console.warn(e)
+  }
+  // Remove iframe "GET 3 MONTHS FREE"
+  try {
+    const iframe = document.querySelector('iframe[data-testid="inAppMessageIframe"]')
+    if (iframe && iframe.contentDocument && iframe.contentDocument.body) {
+      iframe.contentDocument.body.querySelectorAll('button').forEach(function (button) {
+        if (button.parentNode.innerHTML.indexOf('Dismiss_action') !== -1) {
+          button.click()
+        }
+      })
     }
   } catch (e) {
     console.warn(e)
