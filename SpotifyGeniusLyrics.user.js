@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         22.8.9
+// @version         22.8.10
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -225,7 +225,11 @@ function addLyrics (force, beLessSpecific) {
   } else if (document.querySelector('.Root__now-playing-bar .player-controls__buttons button')) {
     // New design 11-2020
     document.querySelectorAll('.Root__now-playing-bar .player-controls__buttons button').forEach(function (button) {
-      if (button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1 || button.innerHTML.indexOf('M3 2h3v12H3zm7 0h3v12h-3z') !== -1) {
+      if (button.getAttribute('aria-label') === 'Pause' ||
+          button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1 ||
+          button.innerHTML.indexOf('M3 2h3v12H3zm7 0h3v12h-3z') !== -1 ||
+          button.innerHTML.indexOf('M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0') !== -1
+      ) {
         musicIsPlaying = true
       }
     })
