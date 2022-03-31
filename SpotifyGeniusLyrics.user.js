@@ -53,7 +53,7 @@ GM.getValue('optioncurrentsize', optionCurrentSize).then(function (value) {
 })
 
 function setFrameDimensions (container, iframe, bar) {
-  iframe.style.width = container.clientWidth - 5 + 'px'
+  iframe.style.width = container.clientWidth - 6 + 'px'
   try {
     iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.Root__now-playing-bar').clientHeight - bar.clientHeight) + 'px'
   } catch (e) {
