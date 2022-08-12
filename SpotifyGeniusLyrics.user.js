@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         22.8.14
+// @version         22.8.15
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -21,6 +21,7 @@
 // @grant           GM.registerMenuCommand
 // @connect         genius.com
 // @include         https://open.spotify.com/*
+// @sandbox         JavaScript
 // ==/UserScript==
 
 /*
@@ -475,22 +476,22 @@ window.setInterval(function removeAds () {
 }, 3000)
 
 const genius = geniusLyrics({
-  GM: GM,
-  scriptName: scriptName,
+  GM,
+  scriptName,
   scriptIssuesURL: 'https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues',
   scriptIssuesTitle: 'Report problem: github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues',
   domain: 'https://open.spotify.com',
   emptyURL: 'https://open.spotify.com/robots.txt',
-  main: main,
-  addCss: addCss,
-  listSongs: listSongs,
-  showSearchField: showSearchField,
-  addLyrics: addLyrics,
-  hideLyrics: hideLyrics,
-  getCleanLyricsContainer: getCleanLyricsContainer,
-  setFrameDimensions: setFrameDimensions,
-  initResize: initResize,
-  onResize: onResize,
+  main,
+  addCss,
+  listSongs,
+  showSearchField,
+  addLyrics,
+  hideLyrics,
+  getCleanLyricsContainer,
+  setFrameDimensions,
+  initResize,
+  onResize,
   toggleLyricsKey: {
     shiftKey: true,
     ctrlKey: false,
