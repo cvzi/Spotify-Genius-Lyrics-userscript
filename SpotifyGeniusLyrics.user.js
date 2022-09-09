@@ -13,14 +13,16 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         22.8.15
+// @version         23.0.0
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
 // @grant           GM.getValue
 // @grant           GM.registerMenuCommand
+// @grant           GM_openInTab
 // @connect         genius.com
 // @include         https://open.spotify.com/*
+// @include         https://genius.com/songs/new
 // @sandbox         JavaScript
 // ==/UserScript==
 
@@ -41,11 +43,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/* global genius, geniusLyrics, unsafeWindow, GM */ // eslint-disable-line no-unused-vars
+/* global genius, geniusLyrics, unsafeWindow, GM, GM_openInTab, KeyboardEvent */ // eslint-disable-line no-unused-vars
 
 'use strict'
 
 const scriptName = 'Spotify Genius Lyrics'
+let genius
 let resizeLeftContainer
 let resizeContainer
 let optionCurrentSize = 30.0
@@ -112,6 +115,74 @@ function getCleanLyricsContainer () {
   resizeContainer.style.zIndex = 10
 
   return document.getElementById('lyricscontainer')
+}
+
+async function onNoResults (songTitle, songArtistsArr) {
+  const showSpotifyLyricsEnabled = await GM.getValue('show_spotify_lyrics', true)
+  const submitSpotifyLyricsEnabled = await GM.getValue('submit_spotify_lyrics', true)
+  const submitSpotifyLyricsIgnored = JSON.parse(await GM.getValue('submit_spotify_lyrics_ignore', '[]'))
+
+  const key = songTitle + ' - ' + songArtistsArr.join(', ')
+  if (submitSpotifyLyricsIgnored.indexOf(key) !== -1) {
+    // User has previously clicked "Cancel" on the confirm dialog for this song
+    console.debug('onNoResults() Key "' + key + '" is ignored')
+    return
+  }
+
+  if (showSpotifyLyricsEnabled && document.querySelector('[data-testid="lyrics-button"]')) {
+    // Open lyrics if they are not already open
+    if (!document.querySelector('[data-testid="fullscreen-lyric"]')) {
+      document.querySelector('[data-testid="lyrics-button"]').click()
+    }
+    // Wait one second for lyrics to open
+    window.setTimeout(function () {
+      const lyrics = Array.from(document.querySelectorAll('[data-testid="fullscreen-lyric"]')).map(div => div.textContent).join('\n')
+      if (submitSpotifyLyricsEnabled && lyrics && lyrics.trim()) {
+        if (window.confirm(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n\n${songTitle}\nby\n${songArtistsArr.join(', ')}`)) {
+          submitLyricsToGenius(songTitle, songArtistsArr, lyrics)
+        } else {
+          // Add this song to the ignored list
+          GM.getValue('submit_spotify_lyrics_ignore', '[]').then(async function (s) {
+            const arr = JSON.parse(s)
+            arr.push(key)
+            await GM.setValue('submit_spotify_lyrics_ignore', JSON.stringify(arr))
+          })
+          // Once (globally) show the suggestion to disable this feature
+          GM.getValue('suggest_to_disable_submit_spotify_lyrics', true).then(function (suggestToDisable) {
+            if (suggestToDisable) {
+              window.alert('You can disable this suggestion in the options of the script.')
+              GM.setValue('suggest_to_disable_submit_spotify_lyrics', false)
+            }
+          })
+        }
+      }
+    }, 1000)
+  }
+}
+
+function submitLyricsToGenius (songTitle, songArtistsArr, lyrics) {
+  GM.setValue('submitToGenius', JSON.stringify({
+    lyrics,
+    songTitle,
+    songArtistsArr
+  })).then(function () {
+    GM_openInTab('https://genius.com/songs/new')
+  })
+}
+
+async function fillGeniusForm () {
+  const data = JSON.parse(await GM.getValue('submitToGenius', '{}'))
+  await GM.setValue('submitToGenius', '{}')
+  if ('lyrics' in data && 'songTitle' in data && 'songArtistsArr' in data) {
+    document.getElementById('song_primary_artist').value = data.songArtistsArr.join(', ')
+    document.getElementById('song_title').value = data.songTitle
+    document.getElementById('song_lyrics').value = data.lyrics
+
+    // Create keyup event on song name, to generate the warning about duplicates
+    const evt = new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'e', char: 'e' })
+    document.getElementById('song_primary_artist').dispatchEvent(evt)
+    document.getElementById('song_title').dispatchEvent(evt)
+  }
 }
 
 function hideLyrics () {
@@ -336,6 +407,50 @@ function addLyricsButton () {
   }
 }
 
+function configShowSpotifyLyrics (div) {
+  // Input: Show lyrics from Spotify if no lyrics found on genius.com
+  const id = 'input945455'
+
+  const input = div.appendChild(document.createElement('input'))
+  input.type = 'checkbox'
+  input.id = id
+  GM.getValue('show_spotify_lyrics', true).then(function (v) {
+    input.checked = v
+  })
+
+  const label = div.appendChild(document.createElement('label'))
+  label.setAttribute('for', id)
+  label.appendChild(document.createTextNode('Open lyrics from Spotify if no lyrics found on genius.com'))
+
+  const onChange = function onChangeListener () {
+    GM.setValue('show_spotify_lyrics', input.checked)
+  }
+  input.addEventListener('change', onChange)
+}
+
+function configSubmitSpotifyLyrics (div) {
+  // Input: Submit lyrics from Spotify to genius.com
+  const id = 'input337565'
+
+  const input = div.appendChild(document.createElement('input'))
+  input.type = 'checkbox'
+  input.id = id
+  input.setAttribute('title', '...in case Spotify has lyrics that genius.com does not have')
+  GM.getValue('submit_spotify_lyrics', true).then(function (v) {
+    input.checked = v
+  })
+
+  const label = div.appendChild(document.createElement('label'))
+  label.setAttribute('for', id)
+  label.appendChild(document.createTextNode('Suggest to submit lyrics from Spotify to genius.com'))
+  label.setAttribute('title', '...in case Spotify has lyrics that genius.com does not have')
+
+  const onChange = function onChangeListener () {
+    GM.setValue('submit_spotify_lyrics', input.checked)
+  }
+  input.addEventListener('change', onChange)
+}
+
 function addCss () {
   document.head.appendChild(document.createElement('style')).innerHTML = `
   .lyricsiframe {
@@ -441,65 +556,72 @@ function main () {
   }
 }
 
-window.setInterval(function removeAds () {
+if (document.location.hostname === 'genius.com') {
+  // https://genius.com/songs/new
+  fillGeniusForm()
+} else {
+  window.setInterval(function removeAds () {
   // Remove "premium" button
-  try {
-    const button = document.querySelector('.Root__top-bar header>button')
-    if (button && button.outerHTML.toLowerCase().indexOf('premium') !== -1) {
-      button.style.display = 'none'
+    try {
+      const button = document.querySelector('.Root__top-bar header>button')
+      if (button && button.outerHTML.toLowerCase().indexOf('premium') !== -1) {
+        button.style.display = 'none'
+      }
+    } catch (e) {
+      console.warn(e)
     }
-  } catch (e) {
-    console.warn(e)
-  }
-  // Remove "install app" button
-  try {
-    const button = document.querySelector('a[href*="/download"]')
-    if (button) {
-      button.parentNode.style.display = 'none'
+    // Remove "install app" button
+    try {
+      const button = document.querySelector('a[href*="/download"]')
+      if (button) {
+        button.parentNode.style.display = 'none'
+      }
+    } catch (e) {
+      console.warn(e)
     }
-  } catch (e) {
-    console.warn(e)
-  }
-  // Remove iframe "GET 3 MONTHS FREE"
-  try {
-    const iframe = document.querySelector('iframe[data-testid="inAppMessageIframe"]')
-    if (iframe && iframe.contentDocument && iframe.contentDocument.body) {
-      iframe.contentDocument.body.querySelectorAll('button').forEach(function (button) {
-        if (button.parentNode.innerHTML.indexOf('Dismiss_action') !== -1) {
-          button.click()
-        }
-      })
+    // Remove iframe "GET 3 MONTHS FREE"
+    try {
+      const iframe = document.querySelector('iframe[data-testid="inAppMessageIframe"]')
+      if (iframe && iframe.contentDocument && iframe.contentDocument.body) {
+        iframe.contentDocument.body.querySelectorAll('button').forEach(function (button) {
+          if (button.parentNode.innerHTML.indexOf('Dismiss_action') !== -1) {
+            button.click()
+          }
+        })
+      }
+    } catch (e) {
+      console.warn(e)
     }
-  } catch (e) {
-    console.warn(e)
-  }
-}, 3000)
+  }, 3000)
 
-const genius = geniusLyrics({
-  GM,
-  scriptName,
-  scriptIssuesURL: 'https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues',
-  scriptIssuesTitle: 'Report problem: github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues',
-  domain: 'https://open.spotify.com',
-  emptyURL: 'https://open.spotify.com/robots.txt',
-  main,
-  addCss,
-  listSongs,
-  showSearchField,
-  addLyrics,
-  hideLyrics,
-  getCleanLyricsContainer,
-  setFrameDimensions,
-  initResize,
-  onResize,
-  toggleLyricsKey: {
-    shiftKey: true,
-    ctrlKey: false,
-    altKey: false,
-    key: 'L'
-  }
-})
+  genius = geniusLyrics({
+    GM,
+    scriptName,
+    scriptIssuesURL: 'https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues',
+    scriptIssuesTitle: 'Report problem: github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues',
+    domain: 'https://open.spotify.com',
+    emptyURL: 'https://open.spotify.com/robots.txt',
+    main,
+    addCss,
+    listSongs,
+    showSearchField,
+    addLyrics,
+    hideLyrics,
+    getCleanLyricsContainer,
+    setFrameDimensions,
+    initResize,
+    onResize,
+    config: [configShowSpotifyLyrics, configSubmitSpotifyLyrics],
+    toggleLyricsKey: {
+      shiftKey: true,
+      ctrlKey: false,
+      altKey: false,
+      key: 'L'
+    },
+    onNoResults
+  })
 
-GM.registerMenuCommand(scriptName + ' - Show lyrics', () => addLyrics(true))
-
-window.setInterval(updateAutoScroll, 7000)
+  GM.registerMenuCommand(scriptName + ' - Show lyrics', () => addLyrics(true))
+  GM.registerMenuCommand(scriptName + ' - Options', () => genius.f.config())
+  window.setInterval(updateAutoScroll, 7000)
+}
