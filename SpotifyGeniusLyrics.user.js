@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.0.2
+// @version         23.1.2
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -56,6 +56,10 @@ GM.getValue('optioncurrentsize', optionCurrentSize).then(function (value) {
   optionCurrentSize = value
 })
 
+function closeModalUIs () {
+  document.querySelectorAll('.modal_ui_spotify_genius_lyrics').forEach(div => div.remove())
+}
+
 function alertUI (text, buttons = { OK: true }) {
   return new Promise(function (resolve) {
     const bg = document.body.appendChild(document.createElement('div'))
@@ -67,6 +71,7 @@ function alertUI (text, buttons = { OK: true }) {
     bg.style.width = '100%'
     bg.style.height = '100%'
     bg.style.zIndex = '999'
+    bg.classList.add('modal_ui_spotify_genius_lyrics')
     const div = bg.appendChild(document.createElement('div'))
     div.style.display = 'block'
     div.style.position = 'fixed'
@@ -182,6 +187,10 @@ function getCleanLyricsContainer () {
   return document.getElementById('lyricscontainer')
 }
 
+function onNewSongPlaying () {
+  closeModalUIs()
+}
+
 async function onNoResults (songTitle, songArtistsArr) {
   const showSpotifyLyricsEnabled = await GM.getValue('show_spotify_lyrics', true)
   const submitSpotifyLyricsEnabled = await GM.getValue('submit_spotify_lyrics', true)
@@ -210,7 +219,8 @@ async function onNoResults (songTitle, songArtistsArr) {
           await GM.setValue('submit_spotify_lyrics_ignore', JSON.stringify(arr))
         })
         // Ask user if they want to submit the lyrics
-        if (await confirmUI(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n(You need to be logged in your Genius.com account to do this)\n${songTitle} by ${songArtistsArr.join(', ')}`)) {
+        closeModalUIs()
+        if (await confirmUI(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n(You need a Genius.com account to do this)\n${songTitle} by ${songArtistsArr.join(', ')}`)) {
           submitLyricsToGenius(songTitle, songArtistsArr, lyrics)
         } else {
           // Once (globally) show the suggestion to disable this feature
@@ -684,7 +694,8 @@ if (document.location.hostname === 'genius.com') {
       altKey: false,
       key: 'L'
     },
-    onNoResults
+    onNoResults,
+    onNewSongPlaying
   })
 
   GM.registerMenuCommand(scriptName + ' - Show lyrics', () => addLyrics(true))
