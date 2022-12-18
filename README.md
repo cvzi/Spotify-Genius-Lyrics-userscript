@@ -15,6 +15,9 @@ Tested with Firefox/**Tampermonkey** and Chrome/**Tampermonkey**.
 
 ![Keyboard shortcut](keyboard.png)
 
+### Contributors:
+[![Contributors](https://contrib.rocks/image?repo=cvzi/Spotify-Genius-Lyrics-userscript)](https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/graphs/contributors)
+
 Similar scripts:
 *   [Youtube Genius Lyrics](https://github.com/cvzi/Youtube-Genius-Lyrics-userscript)
 *   [Youtube Music Genius Lyrics](https://github.com/cvzi/Youtube-Music-Genius-Lyrics-userscript)
