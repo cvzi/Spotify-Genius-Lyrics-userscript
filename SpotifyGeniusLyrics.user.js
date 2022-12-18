@@ -21,8 +21,8 @@
 // @grant           GM.registerMenuCommand
 // @grant           GM_openInTab
 // @connect         genius.com
-// @include         https://open.spotify.com/*
-// @include         https://genius.com/songs/new
+// @match           https://open.spotify.com/*
+// @match           https://genius.com/songs/new
 // @sandbox         JavaScript
 // ==/UserScript==
 
