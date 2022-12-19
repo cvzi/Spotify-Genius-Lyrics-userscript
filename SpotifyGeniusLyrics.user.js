@@ -14,7 +14,7 @@
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
 // @version         23.1.3
-// @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
+// @require https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js?version=1129650
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
 // @grant           GM.getValue
