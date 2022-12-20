@@ -15,12 +15,14 @@ Tested with Firefox/**Tampermonkey** and Chrome/**Tampermonkey**.
 
 ![Keyboard shortcut](keyboard.png)
 
+Family of GeniusLyrics Userscripts:
+*   Powered by **GeniusLyrics Library** [GitHub](https://github.com/cvzi/genius-lyrics-userscript/) [Greaskfork](https://greasyfork.org/en/scripts/406698-geniuslyrics)
+*   **Spotify Genius Lyrics** [GitHub](https://github.com/cvzi/Spotify-Genius-Lyrics-userscript) [Greaskfork](https://greasyfork.org/en/scripts/377439-spotify-genius-lyrics)
+*   **Youtube Genius Lyrics** [GitHub](https://github.com/cvzi/Youtube-Genius-Lyrics-userscript) [Greaskfork](https://greasyfork.org/en/scripts/386259-youtube-genius-lyrics)
+*   **Youtube Music Genius Lyrics** [GitHub](https://github.com/cvzi/Youtube-Music-Genius-Lyrics-userscript/) [Greaskfork](https://greasyfork.org/en/scripts/406892-youtube-music-genius-lyrics)
+
 ### Contributors:
 [![Contributors](https://contrib.rocks/image?repo=cvzi/Spotify-Genius-Lyrics-userscript)](https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/graphs/contributors)
-
-Similar scripts:
-*   [Youtube Genius Lyrics](https://github.com/cvzi/Youtube-Genius-Lyrics-userscript)
-*   [Youtube Music Genius Lyrics](https://github.com/cvzi/Youtube-Music-Genius-Lyrics-userscript)
 
 Screenshot:
 ![Screenshot of spotify web player with lyrics](screenshot.png)
