@@ -14,7 +14,7 @@
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
 // @version         23.1.3
-// @require https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js?version=1129650
+// @require         https://raw.githubusercontent.com/cvzi/genius-lyrics-userscript/test-content-styling/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
 // @grant           GM.getValue
@@ -697,6 +697,18 @@ if (document.location.hostname === 'genius.com') {
     onNoResults,
     onNewSongPlaying
   })
+
+  genius.option.enableStyleSubstitution = true
+  genius.option.cacheHTMLRequest = true // 1 lyrics page consume 2XX KB [OR 25 ~ 50KB under ]
+
+  if (genius.option.themeKey === 'genius' || genius.option.themeKey === 'geniusReact') {
+    genius.style.enabled = true
+    genius.style.setup = () => {
+      genius.style.setup = null // run once; set variables to genius.styleProps
+      if (genius.option.themeKey !== 'genius' && genius.option.themeKey !== 'geniusReact') return false
+      return true
+    }
+  }
 
   GM.registerMenuCommand(scriptName + ' - Show lyrics', () => addLyrics(true))
   GM.registerMenuCommand(scriptName + ' - Options', () => genius.f.config())
