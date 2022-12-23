@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.1.4
+// @version         23.1.5
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -358,6 +358,11 @@ function listSongs (hits, container, query) {
       geniushitname.classList.add('runningtext')
     }
   })
+  if (hits.length === 0) {
+    const li = ol.appendChild(document.createElement('li'))
+    li.style.fontSize = 'larger'
+    li.innerHTML = 'No results found'
+  }
 }
 
 const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root__now-playing-bar .ellipsis-one-line a[href^="/track/"],.Root__now-playing-bar .ellipsis-one-line a[href^="/album/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/track/"]'
@@ -410,6 +415,18 @@ function updateAutoScroll () {
   }
 }
 
+function startSearch (query, container) {
+  genius.f.searchByQuery(query, container, (res) => {
+    if (res && res.status === 200) {
+      listSongs(res.hits, container, query)
+    } else {
+      const div = container.appendChild(document.createElement('div'))
+      div.classList.add('geniushit')
+      div.innerHTML = `Error:<pre>${JSON.stringify(res, null, 2)}</pre>`
+    }
+  })
+}
+
 function showSearchField (query) {
   const b = getCleanLyricsContainer()
   const div = b.appendChild(document.createElement('div'))
@@ -435,21 +452,26 @@ function showSearchField (query) {
   input.placeholder = 'Search genius.com...'
   if (query) {
     input.value = query
+  } else if (genius.current.artists && genius.current.title) {
+    showSearchField(genius.current.artists + ' ' + genius.current.title)
   } else if (genius.current.artists) {
     input.value = genius.current.artists
   }
+  input.addEventListener('focus', function onSearchLyricsButtonFocus () {
+    this.style.color = 'black'
+  })
   input.addEventListener('change', function onSearchLyricsButtonClick () {
     this.style.color = 'black'
     if (input.value) {
-      genius.f.searchByQuery(input.value, b)
+      startSearch(input.value, b)
     }
   })
   input.addEventListener('keyup', function onSearchLyricsKeyUp (ev) {
     this.style.color = 'black'
-    if (ev.keyCode === 13) {
+    if (ev.key === 'Enter') {
       ev.preventDefault()
       if (input.value) {
-        genius.f.searchByQuery(input.value, b)
+        startSearch(input.value, b)
       }
     }
   })
@@ -551,15 +573,15 @@ function addCss () {
     text-decoration:none;
   }
 
-  .geniushits li {
+  .geniushits li.tracklist-row {
     cursor:pointer
   }
-  .geniushits li:hover {
+  .geniushits li.tracklist-row:hover {
     background-color: #fff5;
     border-radius: 5px;
   }
   .geniushits li .geniushiticonout {
-    display:inline-block
+    display:inline-block;
   }
   .geniushits li:hover .geniushiticonout {
     display:none
@@ -568,12 +590,14 @@ function addCss () {
     display:none
   }
   .geniushits li:hover .geniushiticonover {
-    display:inline-block
+    display:inline-block;
+    padding-top:5px;
   }
   .geniushiticon {
     width:25px;
     height:2em;
     display:inline-block;
+    vertical-align: top;
   }
   .geniushitname {
     display:inline-block;
