@@ -286,12 +286,8 @@ function listSongs (hits, container, query) {
     ev.preventDefault()
     if (query) {
       showSearchField(query)
-    } else if (genius.current.compoundTitle) {
-      showSearchField(genius.current.compoundTitle.replace('\t',' ')) 
-    } else if (genius.current.artists && genius.current.title) {
-      showSearchField(genius.current.artists + ' ' + genius.current.title)
     } else if (genius.current.artists) {
-      showSearchField(genius.current.artists)
+      showSearchField(genius.current.artists + ' ' + genius.current.title)
     } else {
       showSearchField()
     }
@@ -341,9 +337,10 @@ function listSongs (hits, container, query) {
 
   const ol = container.querySelector('ol.tracklist')
   const searchresultsLengths = hits.length
-  const compoundTitle = genius.current.compoundTitle
+  const title = genius.current.title
+  const artists = genius.current.artists
   const onclick = function onclick () {
-    genius.f.rememberLyricsSelection(compoundTitle, null, this.dataset.hit)
+    genius.f.rememberLyricsSelection(title, artists, this.dataset.hit)
     genius.f.showLyrics(JSON.parse(this.dataset.hit), searchresultsLengths)
   }
   hits.forEach(function forEachHit (hit) {
@@ -455,10 +452,8 @@ function showSearchField (query) {
   input.placeholder = 'Search genius.com...'
   if (query) {
     input.value = query
-  } else if (genius.current.compoundTitle) {
-    input.value = genius.current.compoundTitle.replace('\t',' ')
   } else if (genius.current.artists && genius.current.title) {
-    input.value = genius.current.artists + ' ' + genius.current.title
+    showSearchField(genius.current.artists + ' ' + genius.current.title)
   } else if (genius.current.artists) {
     input.value = genius.current.artists
   }
