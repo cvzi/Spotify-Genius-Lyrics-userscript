@@ -22,7 +22,6 @@
 // @grant           GM_openInTab
 // @connect         genius.com
 // @match           https://open.spotify.com/*
-// @match           https://genius.com/songs/new
 // @sandbox         JavaScript
 // ==/UserScript==
 
