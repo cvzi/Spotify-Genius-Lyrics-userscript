@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.1.7
+// @version         23.2.0
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -193,7 +193,6 @@ function onNewSongPlaying () {
 
 async function onNoResults (songTitle, songArtistsArr) {
   const showSpotifyLyricsEnabled = await GM.getValue('show_spotify_lyrics', true)
-  const submitSpotifyLyricsEnabled = await GM.getValue('submit_spotify_lyrics', true)
   const submitSpotifyLyricsIgnored = JSON.parse(await GM.getValue('submit_spotify_lyrics_ignore', '[]'))
 
   const key = songTitle + ' - ' + songArtistsArr.join(', ')
@@ -204,35 +203,54 @@ async function onNoResults (songTitle, songArtistsArr) {
   }
 
   if (showSpotifyLyricsEnabled && document.querySelector('[data-testid="lyrics-button"]')) {
-    // Open lyrics if they are not already open
-    if (!document.querySelector('[data-testid="fullscreen-lyric"]')) {
-      document.querySelector('[data-testid="lyrics-button"]').click()
-    }
-    // Wait one second for lyrics to open
-    window.setTimeout(async function () {
-      const lyrics = Array.from(document.querySelectorAll('[data-testid="fullscreen-lyric"]')).map(div => div.textContent).join('\n')
-      if (submitSpotifyLyricsEnabled && lyrics && lyrics.trim()) {
-        // Add this song to the ignored list so we don't ask again
-        GM.getValue('submit_spotify_lyrics_ignore', '[]').then(async function (s) {
-          const arr = JSON.parse(s)
-          arr.push(key)
-          await GM.setValue('submit_spotify_lyrics_ignore', JSON.stringify(arr))
+    openAndAskToSubmitSpotifyLyrics(songTitle, songArtistsArr, false)
+  }
+}
+
+async function openAndAskToSubmitSpotifyLyrics (songTitle, songArtistsArr, forceSubmit = false) {
+  const submitSpotifyLyricsEnabled = forceSubmit || (await GM.getValue('submit_spotify_lyrics', true))
+  const key = songTitle + ' - ' + songArtistsArr.join(', ')
+
+  // Open lyrics if they are not already open
+  if (!document.querySelector('[data-testid="fullscreen-lyric"]')) {
+    document.querySelector('[data-testid="lyrics-button"]').click()
+  }
+  // Wait one second for lyrics to open
+  window.setTimeout(async function () {
+    const lyrics = Array.from(document.querySelectorAll('[data-testid="fullscreen-lyric"]')).map(div => div.textContent).join('\n')
+    if (submitSpotifyLyricsEnabled && lyrics && lyrics.trim()) {
+      // Add this song to the ignored list so we don't ask again
+      GM.getValue('submit_spotify_lyrics_ignore', '[]').then(async function (s) {
+        const arr = JSON.parse(s)
+        arr.push(key)
+        await GM.setValue('submit_spotify_lyrics_ignore', JSON.stringify(arr))
+      })
+      // Ask user if they want to submit the lyrics
+      closeModalUIs()
+      if (forceSubmit || (await confirmUI(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n(You need a Genius.com account to do this)\n${songTitle} by ${songArtistsArr.join(', ')}`))) {
+        submitLyricsToGenius(songTitle, songArtistsArr, lyrics)
+      } else {
+        // Once (globally) show the suggestion to disable this feature
+        GM.getValue('suggest_to_disable_submit_spotify_lyrics', true).then(async function (suggestToDisable) {
+          if (suggestToDisable) {
+            alertUI('You can disable this suggestion in the options of the script.')
+            GM.setValue('suggest_to_disable_submit_spotify_lyrics', false)
+          }
         })
-        // Ask user if they want to submit the lyrics
-        closeModalUIs()
-        if (await confirmUI(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n(You need a Genius.com account to do this)\n${songTitle} by ${songArtistsArr.join(', ')}`)) {
-          submitLyricsToGenius(songTitle, songArtistsArr, lyrics)
-        } else {
-          // Once (globally) show the suggestion to disable this feature
-          GM.getValue('suggest_to_disable_submit_spotify_lyrics', true).then(async function (suggestToDisable) {
-            if (suggestToDisable) {
-              alertUI('You can disable this suggestion in the options of the script.')
-              GM.setValue('suggest_to_disable_submit_spotify_lyrics', false)
-            }
-          })
-        }
       }
-    }, 1000)
+    }
+  }, 1000)
+}
+
+function submitLyricsFromMenu () {
+  closeModalUIs()
+
+  const [songTitle, songArtistsArr] = getSongTitleAndArtist()
+
+  if (songTitle && document.querySelector('[data-testid="lyrics-button"]')) {
+    openAndAskToSubmitSpotifyLyrics(songTitle, songArtistsArr, true)
+  } else {
+    alertUI('Spotify lyrics are not available for this song.')
   }
 }
 
@@ -242,7 +260,7 @@ function submitLyricsToGenius (songTitle, songArtistsArr, lyrics) {
     songTitle,
     songArtistsArr
   })).then(function () {
-    GM_openInTab('https://genius.com/songs/new')
+    GM_openInTab('https://genius.com/songs/new', { active: true })
   })
 }
 
@@ -370,10 +388,15 @@ function listSongs (hits, container, query) {
 
 const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root__now-playing-bar .ellipsis-one-line a[href^="/track/"],.Root__now-playing-bar .ellipsis-one-line a[href^="/album/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/track/"]'
 
-function addLyrics (force, beLessSpecific) {
+function getSongTitleAndArtist () {
   let songTitle = document.querySelector(songTitleQuery).innerText
   songTitle = genius.f.cleanUpSongTitle(songTitle)
+  const songArtistsArr = []
+  document.querySelectorAll('.Root__now-playing-bar .ellipsis-one-line a[href^="/artist/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/artist/"],a[data-testid="context-item-info-artist"][href^="/artist/"],[data-testid="context-item-info-artist"] a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  return [songTitle, songArtistsArr]
+}
 
+function addLyrics (force, beLessSpecific) {
   let musicIsPlaying = false
   if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
     // Old design
@@ -390,10 +413,7 @@ function addLyrics (force, beLessSpecific) {
       }
     })
   }
-
-  const songArtistsArr = []
-  document.querySelectorAll('.Root__now-playing-bar .ellipsis-one-line a[href^="/artist/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/artist/"],a[data-testid="context-item-info-artist"][href^="/artist/"],[data-testid="context-item-info-artist"] a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
-
+  const [songTitle, songArtistsArr] = getSongTitleAndArtist()
   genius.f.loadLyrics(force, beLessSpecific, songTitle, songArtistsArr, musicIsPlaying)
 }
 
@@ -751,5 +771,6 @@ if (document.location.hostname === 'genius.com') {
 
   GM.registerMenuCommand(scriptName + ' - Show lyrics', () => addLyrics(true))
   GM.registerMenuCommand(scriptName + ' - Options', () => genius.f.config())
+  GM.registerMenuCommand(scriptName + ' - Submit lyrics to Genius', () => submitLyricsFromMenu())
   window.setInterval(updateAutoScroll, 1000)
 }
