@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.2.1
+// @version         23.3.0
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -168,7 +168,7 @@ function stopResize () {
 function getCleanLyricsContainer () {
   document.querySelectorAll('.loadingspinner').forEach((spinner) => spinner.remove())
 
-  const topContainer = document.querySelector('.Root__top-container')
+  const topContainer = document.querySelector('.Root__top-bar').parentNode
   if (!document.getElementById('lyricscontainer')) {
     topContainer.style.width = (100 - optionCurrentSize) + '%'
     topContainer.style.float = 'left'
@@ -284,7 +284,7 @@ function hideLyrics () {
   document.querySelectorAll('.loadingspinner').forEach((spinner) => spinner.remove())
   if (document.getElementById('lyricscontainer')) {
     document.getElementById('lyricscontainer').parentNode.removeChild(document.getElementById('lyricscontainer'))
-    const topContainer = document.querySelector('.Root__top-container')
+    const topContainer = document.querySelector('.Root__top-bar').parentNode
     topContainer.style.width = '100%'
     topContainer.style.removeProperty('float')
   }
@@ -398,11 +398,7 @@ function getSongTitleAndArtist () {
 
 function addLyrics (force, beLessSpecific) {
   let musicIsPlaying = false
-  if (document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled')) {
-    // Old design
-    musicIsPlaying = document.querySelector('.now-playing-bar .player-controls__buttons .control-button.control-button--circled').className.toLowerCase().indexOf('pause') !== -1
-  } else if (document.querySelector('.Root__now-playing-bar .player-controls__buttons button')) {
-    // New design 11-2020
+  if (document.querySelector('.Root__now-playing-bar .player-controls__buttons button')) {
     document.querySelectorAll('.Root__now-playing-bar .player-controls__buttons button').forEach(function (button) {
       if (button.getAttribute('aria-label') === 'Pause' ||
           button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1 ||
