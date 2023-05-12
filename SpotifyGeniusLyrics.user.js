@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.3.0
+// @version         23.4.0
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -128,24 +128,13 @@ function confirmUI (text) {
 
 function setFrameDimensions (container, iframe, bar) {
   iframe.style.width = container.clientWidth - 6 + 'px'
-  try {
-    iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.Root__now-playing-bar').clientHeight - bar.clientHeight) + 'px'
-  } catch (e) {
-    console.error(e)
-    iframe.style.height = document.documentElement.clientHeight + 'px'
-  }
+  iframe.style.height = document.documentElement.clientHeight - bar.clientHeight - 15 + 'px'
 }
 
 function onResize () {
   const iframe = document.getElementById('lyricsiframe')
   if (iframe) {
-    iframe.style.width = document.getElementById('lyricscontainer').clientWidth - 1 + 'px'
-    try {
-      iframe.style.height = (document.querySelector('.Root__nav-bar nav,nav.Root__nav-bar').clientHeight + document.querySelector('.Root__now-playing-bar').clientHeight - document.querySelector('.lyricsnavbar').clientHeight) + 'px'
-    } catch (e) {
-      console.error(e)
-      iframe.style.height = document.documentElement.clientHeight + 'px'
-    }
+    setFrameDimensions(document.getElementById('lyricscontainer'), document.getElementById('lyricsiframe'), document.querySelector('.lyricsnavbar'))
   }
 }
 function initResize () {
@@ -168,13 +157,16 @@ function stopResize () {
 function getCleanLyricsContainer () {
   document.querySelectorAll('.loadingspinner').forEach((spinner) => spinner.remove())
 
-  const topContainer = document.querySelector('.Root__top-bar').parentNode
+  const topContainer = document.querySelector('div.Root')
   if (!document.getElementById('lyricscontainer')) {
     topContainer.style.width = (100 - optionCurrentSize) + '%'
     topContainer.style.float = 'left'
+    if (topContainer.style.getPropertyValue('--panel-gap')) {
+      topContainer.style.marginRight = '-' + topContainer.style.getPropertyValue('--panel-gap')
+    }
     resizeContainer = document.createElement('div')
     resizeContainer.id = 'lyricscontainer'
-    resizeContainer.style = 'min-height: 100%; width: ' + optionCurrentSize + '%; position: relative; z-index: 1; float:left;background-color: rgb(80, 80, 80);background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgb(18, 18, 18))'
+    resizeContainer.style = 'min-height: 100%; width: ' + optionCurrentSize + '%; position: relative; z-index: 1; float:left;background:black'
     topContainer.parentNode.insertBefore(resizeContainer, topContainer.nextSibling)
   } else {
     resizeContainer = document.getElementById('lyricscontainer')
@@ -284,7 +276,7 @@ function hideLyrics () {
   document.querySelectorAll('.loadingspinner').forEach((spinner) => spinner.remove())
   if (document.getElementById('lyricscontainer')) {
     document.getElementById('lyricscontainer').parentNode.removeChild(document.getElementById('lyricscontainer'))
-    const topContainer = document.querySelector('.Root__top-bar').parentNode
+    const topContainer = document.querySelector('div.Root')
     topContainer.style.width = '100%'
     topContainer.style.removeProperty('float')
   }
@@ -317,7 +309,8 @@ function listSongs (hits, container, query) {
 
   const separator = document.createElement('span')
   separator.setAttribute('class', 'second-line-separator')
-  separator.setAttribute('style', 'padding:0px 3px')
+  separator.setAttribute('style', 'padding:0px 10px')
+
   separator.appendChild(document.createTextNode('•'))
 
   // Hide button
@@ -426,7 +419,6 @@ function updateAutoScroll () {
   } catch (e) {
     // Could not parse current song position
     pos = null
-    console.debug(`Could not parse song position: ${e}`)
   }
   if (pos != null && !Number.isNaN(pos) && lastPos !== pos) {
     genius.f.scrollLyrics(pos)
@@ -584,6 +576,14 @@ function addCss () {
     left:100px;
     cursor:progress
   }
+  .lyricsnavbar {
+    background-color: rgb(80, 80, 80);
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgb(18, 18, 18));
+    border-radius: 8px 8px 0px 0px;
+    margin: 8px 0px 0px 0px;
+    padding:0px 10px;
+  }
+
   .lyricsnavbar span,.lyricsnavbar a:link,.lyricsnavbar a:visited {
     color: rgb(179, 179, 179);
     text-decoration:none;
@@ -593,7 +593,11 @@ function addCss () {
     color:white;
     text-decoration:none;
   }
-
+  .lyricsnavbar .second-line-separator,.lyricsnavbar .second-line-separator:hover {
+    padding:0px 10px !important;
+    color: transparent;
+    vertical-align: text-bottom;
+  }
   .geniushits li.tracklist-row {
     cursor:pointer
   }
@@ -701,8 +705,8 @@ if (document.location.hostname === 'genius.com') {
   window.setInterval(function removeAds () {
   // Remove "premium" button
     try {
-      const button = document.querySelector('.Root__top-bar header>button')
-      if (button && button.outerHTML.toLowerCase().indexOf('premium') !== -1) {
+      const button = document.querySelector('button[class^=Button][aria-label*=Premium]')
+      if (button) {
         button.style.display = 'none'
       }
     } catch (e) {
@@ -712,7 +716,7 @@ if (document.location.hostname === 'genius.com') {
     try {
       const button = document.querySelector('a[href*="/download"]')
       if (button) {
-        button.parentNode.style.display = 'none'
+        button.style.display = 'none'
       }
     } catch (e) {
       console.warn(e)
