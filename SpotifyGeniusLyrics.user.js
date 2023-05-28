@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.4.0
+// @version         23.4.1
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -379,24 +379,25 @@ function listSongs (hits, container, query) {
   }
 }
 
-const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root__now-playing-bar .ellipsis-one-line a[href^="/track/"],.Root__now-playing-bar .ellipsis-one-line a[href^="/album/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/track/"]'
+const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root footer .ellipsis-one-line a[href^="/track/"],.Root footer .ellipsis-one-line a[href^="/album/"],.Root footer .standalone-ellipsis-one-line a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/track/"]'
 
 function getSongTitleAndArtist () {
   let songTitle = document.querySelector(songTitleQuery).innerText
   songTitle = genius.f.cleanUpSongTitle(songTitle)
   const songArtistsArr = []
-  document.querySelectorAll('.Root__now-playing-bar .ellipsis-one-line a[href^="/artist/"],.Root__now-playing-bar .standalone-ellipsis-one-line a[href^="/artist/"],a[data-testid="context-item-info-artist"][href^="/artist/"],[data-testid="context-item-info-artist"] a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  document.querySelectorAll('.Root footer .ellipsis-one-line a[href^="/artist/"],.Root footer .standalone-ellipsis-one-line a[href^="/artist/"],a[data-testid="context-item-info-artist"][href^="/artist/"],[data-testid="context-item-info-artist"] a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
   return [songTitle, songArtistsArr]
 }
 
 function addLyrics (force, beLessSpecific) {
   let musicIsPlaying = false
-  if (document.querySelector('.Root__now-playing-bar .player-controls__buttons button')) {
-    document.querySelectorAll('.Root__now-playing-bar .player-controls__buttons button').forEach(function (button) {
+  if (document.querySelector('.Root footer .player-controls__buttons button')) {
+    document.querySelectorAll('.Root footer .player-controls__buttons button').forEach(function (button) {
       if (button.getAttribute('aria-label') === 'Pause' ||
           button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1 ||
           button.innerHTML.indexOf('M3 2h3v12H3zm7 0h3v12h-3z') !== -1 ||
-          button.innerHTML.indexOf('M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0') !== -1
+          button.innerHTML.indexOf('M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0') !== -1 ||
+          button.innerHTML.indexOf('M2.7 1a.7.7 0 0 0-.7.7v12.6a') !== -1
       ) {
         musicIsPlaying = true
       }
@@ -689,7 +690,7 @@ function styleIframeContent () {
 }
 
 function main () {
-  if (document.querySelector('.Root__now-playing-bar .playback-bar') && document.querySelector(songTitleQuery)) {
+  if (document.querySelector('.Root footer .playback-bar') && document.querySelector(songTitleQuery)) {
     if (genius.option.autoShow) {
       addLyrics()
     } else {
