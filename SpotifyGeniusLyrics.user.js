@@ -390,7 +390,9 @@ function getSongTitleAndArtist () {
   let songTitle = songTitleDOM.innerText
   songTitle = genius.f.cleanUpSongTitle(songTitle)
   const songArtistsArr = []
-  document.querySelectorAll('.Root footer .ellipsis-one-line a[href^="/artist/"],.Root footer .standalone-ellipsis-one-line a[href^="/artist/"],a[data-testid="context-item-info-artist"][href^="/artist/"],[data-testid="context-item-info-artist"] a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
+  for (const e of document.querySelectorAll('.Root footer .ellipsis-one-line a[href*="/artist/"],.Root footer .standalone-ellipsis-one-line a[href*="/artist/"],a[data-testid="context-item-info-artist"][href*="/artist/"],[data-testid="context-item-info-artist"] a[href*="/artist/"]')) {
+    songArtistsArr.push(e.innerText)
+  }
   return [songTitle, songArtistsArr]
 }
 
