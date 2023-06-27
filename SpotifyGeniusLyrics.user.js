@@ -379,10 +379,15 @@ function listSongs (hits, container, query) {
   }
 }
 
-const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root footer .ellipsis-one-line a[href^="/track/"],.Root footer .ellipsis-one-line a[href^="/album/"],.Root footer .standalone-ellipsis-one-line a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/album/"],[data-testid="context-item-info-title"] a[href^="/track/"]'
+const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root footer .ellipsis-one-line a[href*="/track/"],.Root footer .ellipsis-one-line a[href*="/album/"],.Root footer .standalone-ellipsis-one-line a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/track/"]'
 
 function getSongTitleAndArtist () {
-  let songTitle = document.querySelector(songTitleQuery).innerText
+  let songTitleDOM = document.querySelector(songTitleQuery)
+  if (!songTitleDOM) {
+    console.warn('The song title element is not found.')
+    return
+  }
+  let songTitle = songTitleDOM.innerText
   songTitle = genius.f.cleanUpSongTitle(songTitle)
   const songArtistsArr = []
   document.querySelectorAll('.Root footer .ellipsis-one-line a[href^="/artist/"],.Root footer .standalone-ellipsis-one-line a[href^="/artist/"],a[data-testid="context-item-info-artist"][href^="/artist/"],[data-testid="context-item-info-artist"] a[href^="/artist/"]').forEach((e) => songArtistsArr.push(e.innerText))
