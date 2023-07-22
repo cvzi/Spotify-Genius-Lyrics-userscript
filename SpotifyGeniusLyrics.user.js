@@ -380,18 +380,24 @@ function listSongs (hits, container, query) {
 }
 
 const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root footer .ellipsis-one-line a[href*="/track/"],.Root footer .ellipsis-one-line a[href*="/album/"],.Root footer .standalone-ellipsis-one-line a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/track/"]'
+const songArtistsQuery = '.Root footer .ellipsis-one-line a[href*="/artist/"],.Root footer .standalone-ellipsis-one-line a[href*="/artist/"],a[data-testid="context-item-info-artist"][href*="/artist/"],[data-testid="context-item-info-artist"] a[href*="/artist/"]'
 
 function getSongTitleAndArtist () {
-  const songTitleDOM = document.querySelector(songTitleQuery)
+  const nowPlayingFooter = document.querySelector('footer[data-testid="now-playing-bar"]')
+  const songTitleDOM = nowPlayingFooter ? HTMLElement.prototype.querySelector.call(nowPlayingFooter, songTitleQuery) : document.querySelector(songTitleQuery) // eslint-disable-line no-undef
   if (!songTitleDOM) {
     console.warn('The song title element is not found.')
     return
   }
-  let songTitle = songTitleDOM.innerText
-  songTitle = genius.f.cleanUpSongTitle(songTitle)
+  const songTitle = genius.f.cleanUpSongTitle(songTitleDOM.textContent)
+  if (!songTitle) {
+    console.warn('The song title is empty.')
+    return
+  }
   const songArtistsArr = []
-  for (const e of document.querySelectorAll('.Root footer .ellipsis-one-line a[href*="/artist/"],.Root footer .standalone-ellipsis-one-line a[href*="/artist/"],a[data-testid="context-item-info-artist"][href*="/artist/"],[data-testid="context-item-info-artist"] a[href*="/artist/"]')) {
-    songArtistsArr.push(e.innerText)
+  const ArtistLinks = nowPlayingFooter ? HTMLElement.prototype.querySelectorAll.call(nowPlayingFooter, songArtistsQuery) : document.querySelectorAll(songArtistsQuery) // eslint-disable-line no-undef
+  for (const e of ArtistLinks) {
+    songArtistsArr.push(e.textContent)
   }
   return [songTitle, songArtistsArr]
 }
