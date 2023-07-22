@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.4.3
+// @version         23.4.4
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
