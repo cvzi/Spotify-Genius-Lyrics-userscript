@@ -11,8 +11,6 @@ If you already have a userscript extension installed, you can install it below:
 [**Click here to install**](https://greasyfork.org/scripts/377439-spotify-genius-lyrics/code/Spotify%20Genius%20Lyrics.user.js) 
 Tested with Firefox/**Tampermonkey** and Chrome/**Tampermonkey**.
 
-![Keyboard shortcut](keyboard.png)
-
 Family of GeniusLyrics Userscripts:
 *   Powered by **GeniusLyrics Library** [GitHub](https://github.com/cvzi/genius-lyrics-userscript/) [Greaskfork](https://greasyfork.org/en/scripts/406698-geniuslyrics)
 *   **Spotify Genius Lyrics** [GitHub](https://github.com/cvzi/Spotify-Genius-Lyrics-userscript) [Greaskfork](https://greasyfork.org/en/scripts/377439-spotify-genius-lyrics)
@@ -22,13 +20,15 @@ Family of GeniusLyrics Userscripts:
 ### Contributors:
 [![Contributors](https://contrib.rocks/image?repo=cvzi/Spotify-Genius-Lyrics-userscript)](https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/graphs/contributors)
 
-Screenshot:
-![Screenshot of spotify web player with lyrics](screenshot.png)
+Screenshot (Spotify theme):
+![Screenshot of spotify web player with lyrics](screenshotSpotifyTheme.png)
 
-Screenshot:
-![Screenshot with the spotify theme enabled](screenshotReactSpotifyTheme.png)
+Screenshot (Genius theme):
+![Screenshot with the genius theme enabled](screenshotGeniusTheme.png)
 
-Screenshot:
-![Screenshot with the new theme genius theme enabled](screenshotReactGeniusTheme.png)
+Screenshot (Clean white theme):
+![Screenshot with the new theme genius theme enabled](screenshotWhiteTheme.png)
+
+![Keyboard shortcut](keyboard.png)
 
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
