@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.4.7
+// @version         23.4.8
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -55,76 +55,6 @@ let optionCurrentSize = 30.0
 GM.getValue('optioncurrentsize', optionCurrentSize).then(function (value) {
   optionCurrentSize = value
 })
-
-function closeModalUIs () {
-  document.querySelectorAll('.modal_ui_spotify_genius_lyrics').forEach(div => div.remove())
-}
-
-function alertUI (text, buttons = { OK: true }) {
-  return new Promise(function (resolve) {
-    const bg = document.body.appendChild(document.createElement('div'))
-    bg.style.display = 'block'
-    bg.style.position = 'fixed'
-    bg.style.backgroundColor = 'rgba(0,0,0,0.5)'
-    bg.style.top = '0'
-    bg.style.left = '0'
-    bg.style.width = '100%'
-    bg.style.height = '100%'
-    bg.style.zIndex = '999'
-    bg.classList.add('modal_ui_spotify_genius_lyrics')
-    const div = bg.appendChild(document.createElement('div'))
-    div.style.display = 'block'
-    div.style.position = 'fixed'
-    div.style.backgroundColor = '#bbb'
-    div.style.top = '50%'
-    div.style.left = '50%'
-    div.style.transform = 'translate(-50%, -50%)'
-    div.style.padding = '20px'
-    div.style.borderRadius = '10px'
-    div.style.boxShadow = '0 0 10px 0 rgba(0,0,0,0.5)'
-    div.style.zIndex = '1000'
-    div.style.width = '400px'
-    div.style.height = 'auto'
-    div.style.textAlign = 'center'
-    div.style.fontSize = '20px'
-    div.style.lineHeight = '1.5'
-    div.style.fontFamily = 'sans-serif'
-    div.style.color = 'black'
-    div.style.wordBreak = 'break-word'
-    div.style.overflowWrap = 'break-word'
-    div.style.whiteSpace = 'pre-wrap'
-    div.style.overflow = 'auto'
-    div.style.maxHeight = '80%'
-    div.style.maxWidth = '80%'
-    div.innerHTML = text
-    const buttonDiv = div.appendChild(document.createElement('div'))
-    buttonDiv.style.marginTop = '20px'
-    Object.entries(buttons).forEach(function (pair) {
-      const button = buttonDiv.appendChild(document.createElement('button'))
-      button.style.margin = '0 10px'
-      button.style.padding = '10px'
-      button.style.borderRadius = '5px'
-      button.style.border = 'none'
-      button.style.backgroundColor = '#ddd'
-      button.style.color = 'black'
-      button.style.fontFamily = 'sans-serif'
-      button.style.fontSize = '16px'
-      button.style.cursor = 'pointer'
-      button.innerHTML = pair[0]
-      button.addEventListener('click', function () {
-        bg.remove()
-        resolve(pair[1])
-      })
-    })
-  })
-}
-
-function confirmUI (text) {
-  return alertUI(text, {
-    OK: true,
-    Cancel: false
-  })
-}
 
 function setFrameDimensions (container, iframe, bar) {
   iframe.style.width = container.clientWidth - 6 + 'px'
@@ -180,7 +110,7 @@ function getCleanLyricsContainer () {
 }
 
 function onNewSongPlaying () {
-  closeModalUIs()
+  genius.f.closeModalUIs()
 }
 
 async function onNoResults (songTitle, songArtistsArr) {
@@ -218,14 +148,14 @@ async function openAndAskToSubmitSpotifyLyrics (songTitle, songArtistsArr, force
         await GM.setValue('submit_spotify_lyrics_ignore', JSON.stringify(arr))
       })
       // Ask user if they want to submit the lyrics
-      closeModalUIs()
-      if (forceSubmit || (await confirmUI(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n(You need a Genius.com account to do this)\n${songTitle} by ${songArtistsArr.join(', ')}`))) {
+      genius.f.closeModalUIs()
+      if (forceSubmit || (await genius.f.modalConfirm(`Genius.com doesn't have the lyrics for this song but Spotify has the lyrics. Would you like to submit the lyrics from Spotify to Genius.com?\n(You need a Genius.com account to do this)\n${songTitle} by ${songArtistsArr.join(', ')}`))) {
         submitLyricsToGenius(songTitle, songArtistsArr, lyrics)
       } else {
         // Once (globally) show the suggestion to disable this feature
         GM.getValue('suggest_to_disable_submit_spotify_lyrics', true).then(async function (suggestToDisable) {
           if (suggestToDisable) {
-            alertUI('You can disable this suggestion in the options of the script.')
+            genius.f.modalAlert('You can disable this suggestion in the options of the script.')
             GM.setValue('suggest_to_disable_submit_spotify_lyrics', false)
           }
         })
@@ -235,14 +165,14 @@ async function openAndAskToSubmitSpotifyLyrics (songTitle, songArtistsArr, force
 }
 
 function submitLyricsFromMenu () {
-  closeModalUIs()
+  genius.f.closeModalUIs()
 
   const [songTitle, songArtistsArr] = getSongTitleAndArtist()
 
   if (songTitle && document.querySelector('[data-testid="lyrics-button"]')) {
     openAndAskToSubmitSpotifyLyrics(songTitle, songArtistsArr, true)
   } else {
-    alertUI('Spotify lyrics are not available for this song.')
+    genius.f.modalAlert('Spotify lyrics are not available for this song.')
   }
 }
 
