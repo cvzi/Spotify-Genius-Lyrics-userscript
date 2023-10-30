@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.4.8
+// @version         23.5.0
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
@@ -506,6 +506,50 @@ function configSubmitSpotifyLyrics (div) {
   input.addEventListener('change', onChange)
 }
 
+function configHideSpotifySuggestions (div) {
+  // Input: Hide suggestions and hints from Spotify about new features
+  const id = 'input875687'
+
+  const input = div.appendChild(document.createElement('input'))
+  input.type = 'checkbox'
+  input.id = id
+  input.setAttribute('title', 'Hide suggestions and hints from Spotify about new features')
+  GM.getValue('hide_spotify_suggestions', true).then(function (v) {
+    input.checked = v
+  })
+
+  const label = div.appendChild(document.createElement('label'))
+  label.setAttribute('for', id)
+  label.appendChild(document.createTextNode('Hide suggestions and hints from Spotify about new features'))
+
+  const onChange = function onChangeListener () {
+    GM.setValue('hide_spotify_suggestions', input.checked)
+  }
+  input.addEventListener('change', onChange)
+}
+
+function configHideSpotifyNowPlayingView (div) {
+  // Input: Hide "Now Playing View"
+  const id = 'input12567826'
+
+  const input = div.appendChild(document.createElement('input'))
+  input.type = 'checkbox'
+  input.id = id
+  input.setAttribute('title', 'Hide Spotify\'s "Now Playing View"')
+  GM.getValue('hide_spotify_now_playing_view', true).then(function (v) {
+    input.checked = v
+  })
+
+  const label = div.appendChild(document.createElement('label'))
+  label.setAttribute('for', id)
+  label.appendChild(document.createTextNode('Hide Spotify\'s "Now Playing View"'))
+
+  const onChange = function onChangeListener () {
+    GM.setValue('hide_spotify_now_playing_view', input.checked)
+  }
+  input.addEventListener('change', onChange)
+}
+
 function addCss () {
   document.head.appendChild(document.createElement('style')).innerHTML = `
   .lyricsiframe {
@@ -647,7 +691,7 @@ if (document.location.hostname === 'genius.com') {
   fillGeniusForm()
 } else {
   window.setInterval(function removeAds () {
-  // Remove "premium" button
+    // Remove "premium" button
     try {
       const button = document.querySelector('button[class^=Button][aria-label*=Premium]')
       if (button) {
@@ -678,6 +722,24 @@ if (document.location.hostname === 'genius.com') {
     } catch (e) {
       console.warn(e)
     }
+
+    GM.getValue('hide_spotify_suggestions', true).then(function (hideSuggestions) {
+      if (hideSuggestions) {
+        // Remove hints and suggestions
+        document.querySelectorAll('.encore-announcement-set button[class*="Button-"]').forEach(b => b.click())
+        // Check "show never again"
+        document.querySelectorAll('#dont.show.onboarding.npv').forEach(c => (c.checked = true))
+        // Close bubble
+        document.querySelectorAll('.tippy-box button[class*="Button-"]').forEach(b => b.click())
+      }
+    })
+
+    GM.getValue('hide_spotify_now_playing_view', true).then(function (hideNowPlaying) {
+      if (hideNowPlaying) {
+        // Close "Now Playing View"
+        document.querySelectorAll('#Desktop_PanelContainer_Id .os-padding [data-testid="PanelHeader_CloseButton"] button[class*="Button-"]').forEach(b => b.click())
+      }
+    })
   }, 3000)
 
   genius = geniusLyrics({
@@ -697,7 +759,12 @@ if (document.location.hostname === 'genius.com') {
     setFrameDimensions,
     initResize,
     onResize,
-    config: [configShowSpotifyLyrics, configSubmitSpotifyLyrics],
+    config: [
+      configShowSpotifyLyrics,
+      configSubmitSpotifyLyrics,
+      configHideSpotifySuggestions,
+      configHideSpotifyNowPlayingView
+    ],
     toggleLyricsKey: {
       shiftKey: true,
       ctrlKey: false,
