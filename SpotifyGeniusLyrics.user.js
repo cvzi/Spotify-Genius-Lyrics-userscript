@@ -44,6 +44,7 @@
 */
 
 /* global genius, geniusLyrics, unsafeWindow, GM, GM_openInTab, KeyboardEvent */ // eslint-disable-line no-unused-vars
+/* jshint asi: true, esversion: 8 */
 
 'use strict'
 
