@@ -13,13 +13,14 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.5.4
+// @version         23.5.5
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
 // @grant           GM.getValue
 // @grant           GM.registerMenuCommand
 // @grant           GM_openInTab
+// @grant           unsafeWindow
 // @connect         genius.com
 // @match           https://open.spotify.com/*
 // @match           https://genius.com/songs/new
@@ -738,7 +739,12 @@ if (document.location.hostname === 'genius.com') {
     GM.getValue('hide_spotify_now_playing_view', true).then(function (hideNowPlaying) {
       if (hideNowPlaying) {
         // Close "Now Playing View"
-        document.querySelectorAll('#Desktop_PanelContainer_Id [data-testid="PanelHeader_CloseButton"] button[class*="Button-"]').forEach(b => b.click())
+        document.querySelectorAll('#Desktop_PanelContainer_Id [data-testid="PanelHeader_CloseButton"] button[class*="Button-"]').forEach(function (b) {
+          if (b.parentNode.previousElementSibling && b.parentNode.previousElementSibling.tagName === 'BUTTON') {
+            // Second button is the "Now Playing View" button but not in the "Queue view"
+            b.click()
+          }
+        })
       }
     })
   }, 3000)
