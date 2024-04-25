@@ -15,6 +15,7 @@
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
 // @version         23.5.5
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
+// @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
 // @grant           GM.setValue
 // @grant           GM.getValue
