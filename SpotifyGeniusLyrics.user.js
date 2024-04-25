@@ -169,7 +169,8 @@ async function openAndAskToSubmitSpotifyLyrics (songTitle, songArtistsArr, force
 function submitLyricsFromMenu () {
   genius.f.closeModalUIs()
 
-  const [songTitle, songArtistsArr] = getSongTitleAndArtist()
+  const [ret, songTitle, songArtistsArr] = getSongTitleAndArtist()
+  if (ret < 0) return
 
   if (songTitle && document.querySelector('[data-testid="lyrics-button"]')) {
     openAndAskToSubmitSpotifyLyrics(songTitle, songArtistsArr, true)
@@ -319,19 +320,19 @@ function getSongTitleAndArtist () {
   const songTitleDOM = nowPlayingFooter ? HTMLElement.prototype.querySelector.call(nowPlayingFooter, songTitleQuery) : document.querySelector(songTitleQuery) // eslint-disable-line no-undef
   if (!songTitleDOM) {
     console.warn('The song title element is not found.')
-    return
+    return [-1]
   }
   const songTitle = genius.f.cleanUpSongTitle(songTitleDOM.textContent)
   if (!songTitle) {
     console.warn('The song title is empty.')
-    return
+    return [-2]
   }
   const songArtistsArr = []
   const ArtistLinks = nowPlayingFooter ? HTMLElement.prototype.querySelectorAll.call(nowPlayingFooter, songArtistsQuery) : document.querySelectorAll(songArtistsQuery) // eslint-disable-line no-undef
   for (const e of ArtistLinks) {
     songArtistsArr.push(e.textContent)
   }
-  return [songTitle, songArtistsArr]
+  return [0, songTitle, songArtistsArr]
 }
 
 function addLyrics (force, beLessSpecific) {
@@ -348,7 +349,8 @@ function addLyrics (force, beLessSpecific) {
       }
     })
   }
-  const [songTitle, songArtistsArr] = getSongTitleAndArtist()
+  const [ret, songTitle, songArtistsArr] = getSongTitleAndArtist()
+  if (ret < 0) return
   genius.f.loadLyrics(force, beLessSpecific, songTitle, songArtistsArr, musicIsPlaying)
 }
 
