@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name            Spotify Genius Lyrics
+// @name            Spotify Genius Lyrics [No LZStrig]
 // @description     Shows lyrics from genius.com on the Spotify web player
 // @description:es  Mostra la letra de genius.com de las canciones en el reproductor web de Spotify
 // @description:de  Zeigt den Songtext von genius.com im Spotify-Webplayer an
@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.5.8
+// @version         23.5.8-nolzstring
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -48,6 +48,9 @@
 /* jshint asi: true, esversion: 8 */
 
 'use strict'
+
+LZString.compressToUTF16 = (x) => x;
+LZString.decompressFromUTF16 = (x) => x;
 
 const scriptName = 'Spotify Genius Lyrics'
 let genius
