@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.0
+// @version         23.6.1
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -366,7 +366,7 @@ const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root footer .ell
 const songArtistsQuery = '.Root footer .ellipsis-one-line a[href*="/artist/"],.Root footer .standalone-ellipsis-one-line a[href*="/artist/"],a[data-testid="context-item-info-artist"][href*="/artist/"],[data-testid="context-item-info-artist"] a[href*="/artist/"]'
 
 function getSongTitleAndArtist () {
-  const nowPlayingFooter = document.querySelector('footer[data-testid="now-playing-bar"]')
+  const nowPlayingFooter = document.querySelector('[data-testid="now-playing-widget"]')
   const songTitleDOM = nowPlayingFooter ? HTMLElement.prototype.querySelector.call(nowPlayingFooter, songTitleQuery) : document.querySelector(songTitleQuery) // eslint-disable-line no-undef
   if (!songTitleDOM) {
     console.warn('The song title element is not found.')
@@ -731,7 +731,7 @@ function styleIframeContent () {
 }
 
 function main () {
-  if (document.querySelector('.Root footer .playback-bar') && document.querySelector(songTitleQuery)) {
+  if (document.querySelector('.Root .player-controls [data-testid="playback-progressbar"]') && document.querySelector(songTitleQuery)) {
     if (genius.option.autoShow) {
       addLyrics()
     } else {
