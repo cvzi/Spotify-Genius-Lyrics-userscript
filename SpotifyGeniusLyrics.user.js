@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.2
+// @version         23.6.3
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -387,8 +387,9 @@ function getSongTitleAndArtist () {
 
 function addLyrics (force, beLessSpecific) {
   let musicIsPlaying = false
-  if (document.querySelector('.Root footer .player-controls__buttons button')) {
-    document.querySelectorAll('.Root footer .player-controls__buttons button').forEach(function (button) {
+  const buttons = document.querySelectorAll('.Root footer button[data-testid="control-button-playpause"]')
+  if (buttons.length) {
+    buttons.forEach(function (button) {
       if (button.getAttribute('aria-label') === 'Pause' ||
           button.innerHTML.indexOf('M3 2h3v12H3zM10 2h3v12h-3z') !== -1 ||
           button.innerHTML.indexOf('M3 2h3v12H3zm7 0h3v12h-3z') !== -1 ||
@@ -731,7 +732,7 @@ function styleIframeContent () {
 }
 
 function main () {
-  if (document.querySelector('.Root .player-controls [data-testid="playback-progressbar"]') && document.querySelector(songTitleQuery)) {
+  if (document.querySelector('.Root [data-testid="player-controls"] [data-testid="playback-progressbar"]') && document.querySelector(songTitleQuery)) {
     if (genius.option.autoShow) {
       addLyrics()
     } else {
