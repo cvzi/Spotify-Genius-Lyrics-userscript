@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.3
+// @version         23.6.4
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -409,7 +409,7 @@ let lastPos = null
 function updateAutoScroll () {
   let pos = null
   try {
-    const els = document.querySelectorAll('.player-controls [data-testid="playback-position"],.player-controls [data-testid="playback-duration"]')
+    const els = document.querySelectorAll('[data-testid="player-controls"] [data-testid="playback-position"],[data-testid="player-controls"] [data-testid="playback-duration"]')
     if (els.length !== 2) {
       throw new Error(`Expected 2 playback elements, found ${els.length}`)
     }
