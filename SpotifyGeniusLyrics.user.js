@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.6
+// @version         23.6.7
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -413,8 +413,8 @@ function updateAutoScroll () {
     if (els.length !== 2) {
       throw new Error(`Expected 2 playback elements, found ${els.length}`)
     }
-    const [current, total] = Array.from(els).map(e => e.textContent.trim()).map(s => s.split(':').reverse().map((d, i, a) => parseInt(d) * Math.pow(60, i)).reduce((a, c) => a + c, 0))
-    pos = current / total
+    const [current, remaining] = Array.from(els).map(e => e.textContent.trim().replace('-', '')).map(s => s.split(':').reverse().map((d, i, a) => parseInt(d) * Math.pow(60, i)).reduce((a, c) => a + c, 0))
+    pos = current / (current + remaining)
   } catch (e) {
     // Could not parse current song position
     pos = null
