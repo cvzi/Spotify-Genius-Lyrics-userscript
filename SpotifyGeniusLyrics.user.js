@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.9
+// @version         23.6.10
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -243,13 +243,13 @@ async function fillGeniusForm () {
   const data = JSON.parse(await GM.getValue('submitToGenius', '{}'))
   await GM.setValue('submitToGenius', '{}')
   if ('lyrics' in data && 'songTitle' in data && 'songArtistsArr' in data) {
-    document.getElementById('song_primary_artist').value = data.songArtistsArr.join(', ')
+    document.getElementById('song_primary_artists__name').value = data.songArtistsArr.join(', ')
     document.getElementById('song_title').value = data.songTitle
     document.getElementById('song_lyrics').value = data.lyrics
 
     // Create keyup event on song name, to generate the warning about duplicates
     const evt = new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'e', char: 'e' })
-    document.getElementById('song_primary_artist').dispatchEvent(evt)
+    document.getElementById('song_primary_artists__name').dispatchEvent(evt)
     document.getElementById('song_title').dispatchEvent(evt)
   }
 }
