@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.10
+// @version         23.6.11
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -792,14 +792,11 @@ if (document.location.hostname === 'genius.com') {
     GM.getValue('hide_spotify_now_playing_view', true).then(function (hideNowPlaying) {
       if (hideNowPlaying) {
         // Close "Now Playing View"
-        // Old:
-        document.querySelectorAll('#Desktop_PanelContainer_Id [data-testid="PanelHeader_CloseButton"] button[class*="Button-"]').forEach(function (b) {
-          if (b.parentNode.previousElementSibling && b.parentNode.previousElementSibling.tagName === 'BUTTON') {
-            // Second button is the "Now Playing View" button but not in the "Queue view"
-            b.click()
-          }
+        // New: 2025-04
+        document.querySelectorAll('[data-testid="control-button-npv"][data-active="true"]').forEach(function (b) {
+          b.click()
         })
-        // New: 2024-10
+        // Old: 2024-10
         document.querySelectorAll('#Desktop_PanelContainer_Id [data-testid="PanelHeader_CloseButton"] button[class*="Button-"]').forEach(function (b) {
           if (b.parentNode.previousElementSibling && b.parentNode.previousElementSibling.querySelector('button[data-testid="more-button"]')) {
             // Second button is the "Now Playing View" button but not in the "Queue view"
