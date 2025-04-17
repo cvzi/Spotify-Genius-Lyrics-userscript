@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.11
+// @version         23.6.12
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -350,9 +350,15 @@ function listSongs (hits, container, query) {
     li.addEventListener('click', onclick)
 
     const geniushitname = li.querySelector('.geniushitname')
-    if (geniushitname.clientWidth > (li.clientWidth - 30)) {
+
+    const widthDiff = geniushitname.clientWidth - (li.clientWidth - 30)
+    if (widthDiff > 0) {
       geniushitname.style.width = (li.clientWidth - 30) + 'px'
       geniushitname.classList.add('runningtext')
+      if (geniushitname.querySelector('.tracklist-name')) {
+        const animationTime = Math.ceil(Math.max(3, widthDiff / 100))
+        geniushitname.querySelector('.tracklist-name').style.animation = `${animationTime}s linear 1s infinite normal runtext`
+      }
     }
   })
   if (hits.length === 0) {
@@ -680,7 +686,11 @@ function addCss () {
   .geniushitname.runningtext .tracklist-name {
     display: inline-block;
     position: relative;
-    animation: 3s linear 0s infinite alternate runtext;
+    animation: 3s linear 1s infinite normal runtext;
+  }
+
+  .geniushitname.runningtext:hover .tracklist-name {
+    animation: none !important;
   }
 
   .geniushits .second-line-separator {
