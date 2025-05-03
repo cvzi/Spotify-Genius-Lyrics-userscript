@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.12
+// @version         23.6.13
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -782,6 +782,17 @@ if (document.location.hostname === 'genius.com') {
           if (button.parentNode.innerHTML.indexOf('Dismiss_action') !== -1) {
             button.click()
           }
+        })
+      }
+    } catch (e) {
+      console.warn(e)
+    }
+    // Remove another iframe "GET 3 MONTHS FREE"
+    try {
+      const iframe = document.querySelector('.ReactModalPortal iframe[srcdoc*="/purchase/"]')
+      if (iframe && iframe.contentDocument && iframe.contentDocument.body) {
+        iframe.contentDocument.body.querySelectorAll('[data-click-to-action-url*="https://www.spotify.com/purchase/"]').forEach(function (button) {
+          button.click()
         })
       }
     } catch (e) {
