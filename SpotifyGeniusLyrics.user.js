@@ -13,7 +13,7 @@
 // @copyright       2020, cuzi (https://github.com/cvzi)
 // @supportURL      https://github.com/cvzi/Spotify-Genius-Lyrics-userscript/issues
 // @icon            https://avatars.githubusercontent.com/u/251374?s=200&v=4
-// @version         23.6.14
+// @version         23.6.15
 // @require         https://greasyfork.org/scripts/406698-geniuslyrics/code/GeniusLyrics.js
 // @require         https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js
 // @grant           GM.xmlHttpRequest
@@ -368,12 +368,11 @@ function listSongs (hits, container, query) {
   }
 }
 
-const songTitleQuery = 'a[data-testid="nowplaying-track-link"],.Root footer .ellipsis-one-line a[href*="/track/"],.Root footer .ellipsis-one-line a[href*="/album/"],.Root footer .standalone-ellipsis-one-line a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/track/"]'
-const songArtistsQuery = '.Root footer .ellipsis-one-line a[href*="/artist/"],.Root footer .standalone-ellipsis-one-line a[href*="/artist/"],a[data-testid="context-item-info-artist"][href*="/artist/"],[data-testid="context-item-info-artist"] a[href*="/artist/"]'
+const songTitleQuery = '.Root [data-testid="now-playing-bar"] .standalone-ellipsis-one-line a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/album/"],[data-testid="context-item-info-title"] a[href*="/track/"]'
+const songArtistsQuery = '.Root [data-testid="now-playing-bar"] .standalone-ellipsis-one-line a[href*="/artist/"],a[data-testid="context-item-info-artist"][href*="/artist/"],[data-testid="context-item-info-artist"] a[href*="/artist/"]'
 
 function getSongTitleAndArtist () {
-  const nowPlayingFooter = document.querySelector('[data-testid="now-playing-widget"]')
-  const songTitleDOM = nowPlayingFooter ? HTMLElement.prototype.querySelector.call(nowPlayingFooter, songTitleQuery) : document.querySelector(songTitleQuery) // eslint-disable-line no-undef
+  const songTitleDOM = document.querySelector(songTitleQuery)
   if (!songTitleDOM) {
     console.warn('The song title element is not found.')
     return [-1]
@@ -384,16 +383,17 @@ function getSongTitleAndArtist () {
     return [-2]
   }
   const songArtistsArr = []
-  const ArtistLinks = nowPlayingFooter ? HTMLElement.prototype.querySelectorAll.call(nowPlayingFooter, songArtistsQuery) : document.querySelectorAll(songArtistsQuery) // eslint-disable-line no-undef
+  const ArtistLinks = document.querySelectorAll(songArtistsQuery)
   for (const e of ArtistLinks) {
     songArtistsArr.push(e.textContent)
   }
+
   return [0, songTitle, songArtistsArr]
 }
 
 function addLyrics (force, beLessSpecific) {
   let musicIsPlaying = false
-  const buttons = document.querySelectorAll('.Root footer button[data-testid="control-button-playpause"]')
+  const buttons = document.querySelectorAll('.Root button[data-testid="control-button-playpause"]')
   if (buttons.length) {
     buttons.forEach(function (button) {
       if (button.getAttribute('aria-label') === 'Pause' ||
