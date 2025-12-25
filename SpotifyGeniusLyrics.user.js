@@ -818,16 +818,15 @@ if (document.location.hostname === 'genius.com') {
     GM.getValue('hide_spotify_now_playing_view', true).then(function (hideNowPlaying) {
       if (hideNowPlaying) {
         // Close "Now Playing View"
-        // New: 2025-04
-        document.querySelectorAll('[data-testid="control-button-npv"][data-active="true"]').forEach(function (b) {
+
+        // New: 2025-12
+        document.querySelectorAll('.NowPlayingView button[aria-label="Hide Now Playing view"]').forEach(function (b) {
           b.click()
         })
-        // Old: 2024-10
-        document.querySelectorAll('#Desktop_PanelContainer_Id [data-testid="PanelHeader_CloseButton"] button[class*="Button-"]').forEach(function (b) {
-          if (b.parentNode.previousElementSibling && b.parentNode.previousElementSibling.querySelector('button[data-testid="more-button"]')) {
-            // Second button is the "Now Playing View" button but not in the "Queue view"
-            b.click()
-          }
+
+        // Old: 2025-04
+        document.querySelectorAll('[data-testid="control-button-npv"][data-active="true"]').forEach(function (b) {
+          b.click()
         })
       }
     })
